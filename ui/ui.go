@@ -9,8 +9,8 @@ import (
 type UI struct {
 	Versions []bib.Version
 	stdscr   *goncurses.Window
-	wins     map[*bib.Version]*goncurses.Window
-	curvsri  int
+	pads     []VersionPad
+	curpadi  int
 }
 
 // Init docs here.
@@ -21,61 +21,57 @@ func (ui *UI) Init() error {
 	}
 	goncurses.Cursor(1)   // Shows cursor.
 	goncurses.Echo(false) // Does not echo typing.
-	goncurses.SlkAttributeOff(goncurses.FO_WRAP)
+	goncurses.SlkAttributeOn(goncurses.FO_WRAP)
 
 	rows, cols := ui.stdscr.MaxYX()
-	winheight := rows
-	winwidth := cols / len(ui.Versions)
+	padheight := rows
+	padwidth := cols / len(ui.Versions)
 
-	ui.wins = map[*bib.Version]*goncurses.Window{}
+	ui.pads = make([]VersionPad, 0, len(ui.Versions))
 	for i := range ui.Versions {
-		win, err := goncurses.NewWindow(
-			winheight, winwidth,
-			0, winwidth*i,
-		)
+		vsr := &ui.Versions[i]
+		pad, err := NewVersionPad(
+			vsr,
+			padheight, padwidth,
+			0, i*padwidth)
 		if err != nil {
 			return err
 		}
-		win.ScrollOk(true)
-		ui.wins[&ui.Versions[i]] = win
+		ui.pads = append(ui.pads, pad)
 	}
 
-	// by default, first version is selected.
-	ui.curvsri = 0
+	// by default, first pad is selected.
+	ui.curpadi = 0
 	return nil
 }
 
-func (ui *UI) nextvsr()                  { ui.curvsri++ }
-func (ui *UI) curvsr() *bib.Version      { return &ui.Versions[ui.curvsri] }
-func (ui *UI) curwin() *goncurses.Window { return ui.wins[ui.curvsr()] }
+func (ui *UI) nextpad()            { ui.curpadi++ }
+func (ui *UI) curpad() *VersionPad { return &ui.pads[ui.curpadi] }
 
 // End docs here.
 func (ui *UI) End() {
-	for _, win := range ui.wins {
-		win.Delete()
+	for _, pad := range ui.pads {
+		pad.Delete()
 	}
 	goncurses.End()
 }
 
+// Loop docs here.
 func (ui *UI) Loop() {
 	for {
 		switch ui.stdscr.GetChar() {
 		case 'q':
 			return
 		case 'k':
-			ui.curwin().Scroll(-1)
-			ui.curwin().NoutRefresh()
+			ui.curpad().Scroll(-1)
+			ui.curpad().NoutRefresh()
 		case 'j':
-			ui.curwin().Scroll(1)
-			ui.curwin().NoutRefresh()
+			ui.curpad().Scroll(1)
+			ui.curpad().NoutRefresh()
 		case 'd':
-			// initially writes a bunch to windows
-			for vsr, win := range ui.wins {
-				for i := 0; i < 20; i++ {
-					win.Println(&vsr.Books[0].Chapters[0].Verses[i])
-					win.NoutRefresh()
-				}
-			}
+			ref := bib.Ref{BookName: "Genesis", ChapterNum: 1, VerseNum: 1, Offset: 10}
+			ui.curpad().LoadRef(&ref)
+			ui.curpad().NoutRefresh()
 		default:
 		}
 		goncurses.Update()

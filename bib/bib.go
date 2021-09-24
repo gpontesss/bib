@@ -2,10 +2,6 @@ package bib
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"strconv"
-	"strings"
 )
 
 // Version docs here.
@@ -53,6 +49,16 @@ type Chapter struct {
 	Verses []Verse
 }
 
+// GetVerse docs here.
+func (chap *Chapter) GetVerse(num int) *Verse {
+	for i := range chap.Verses {
+		if verse := &chap.Verses[i]; verse.Number == num {
+			return verse
+		}
+	}
+	return nil
+}
+
 // Verse docs here.
 type Verse struct {
 	// Chapter is a reference to the chapter which the verse belongs to.
@@ -69,75 +75,4 @@ func (vrs *Verse) String() string {
 		vrs.Chapter.Number,
 		vrs.Number,
 		vrs.Text)
-}
-
-// VersionFromTSV docs here.
-// TODO: something about metadata in TSV.
-// TODO: helpful errors.
-func VersionFromTSV(path string) (Version, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return Version{}, err
-	}
-	version := Version{
-		// TODO: include metadata in file and extract it from there.
-		Name:  file.Name(),
-		Books: []Book{},
-	}
-
-	// not the most efficient way of doing it.
-	var bs []byte
-	if bs, err = io.ReadAll(file); err != nil {
-		return Version{}, err
-	}
-
-	lines := strings.Split(string(bs), "\n")
-	for i := range lines {
-		line := lines[i]
-		// ignores empty lines
-		if len(line) <= 0 {
-			continue
-		}
-
-		lineparts := strings.Split(line, "\t")
-		bookname, ref, text := lineparts[0], lineparts[1], lineparts[2]
-
-		var book *Book
-		if book = version.GetBook(bookname); book == nil {
-			version.Books = append(version.Books, Book{
-				Version:  &version,
-				Name:     bookname,
-				Chapters: []Chapter{},
-			})
-			book = &version.Books[len(version.Books)-1]
-		}
-
-		refparts := strings.Split(ref, ":")
-		chapnumstr, versenumstr := refparts[0], refparts[1]
-
-		var chapnum, versenum int
-		if chapnum, err = strconv.Atoi(chapnumstr); err != nil {
-			return Version{}, err
-		} else if versenum, err = strconv.Atoi(versenumstr); err != nil {
-			return Version{}, err
-		}
-
-		var chap *Chapter
-		if chap = book.GetChapter(chapnum); chap == nil {
-			book.Chapters = append(book.Chapters, Chapter{
-				Book:   book,
-				Number: chapnum,
-				Verses: []Verse{},
-			})
-			chap = &book.Chapters[len(book.Chapters)-1]
-		}
-
-		chap.Verses = append(chap.Verses, Verse{
-			Chapter: chap,
-			Number:  versenum,
-			Text:    text,
-		})
-	}
-
-	return version, nil
 }
