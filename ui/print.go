@@ -13,17 +13,18 @@ type MovePrinter interface {
 
 // RefPrinter docs here.
 type RefPrinter struct {
-	ref   *bib.Ref
-	vsr   *bib.Version
-	width int
+	ref            *bib.Ref
+	vsr            *bib.Version
+	width, padding int
 }
 
 // NewRefPrinter docs here.
-func NewRefPrinter(ref *bib.Ref, vsr *bib.Version, width int) RefPrinter {
+func NewRefPrinter(ref *bib.Ref, vsr *bib.Version, width, padding int) RefPrinter {
 	return RefPrinter{
-		ref:   ref,
-		vsr:   vsr,
-		width: width,
+		ref:     ref,
+		vsr:     vsr,
+		width:   width,
+		padding: padding,
 	}
 }
 
@@ -32,28 +33,31 @@ func (rp *RefPrinter) SetVersion(vsr *bib.Version) { rp.vsr = vsr }
 
 // Print docs here.
 func (rp *RefPrinter) Print(mp MovePrinter) int {
-	mp.MovePrint(0, 0, rp.vsr.Name, " ", rp.ref) // header
+	// height/width ration ~ 2
+	vertpadding := (rp.padding / 2)
+	mp.MovePrint(vertpadding, rp.padding, rp.vsr.Name, " ", rp.ref) // header
 
-	linei := 1
+	linei := vertpadding + 1
 	for _, verse := range rp.ref.Verses(rp.vsr) {
 		text := verse.String()
 		textlen := len(text)
 
+		width := rp.width - (2 * rp.padding)
 		// A more secure way of doing ceiling division with integers.
-		linecount := textlen / rp.width
-		if (textlen % rp.width) != 0 {
+		linecount := textlen / width
+		if (textlen % width) != 0 {
 			linecount++
 		}
 
 		for i := 0; i < linecount; i++ {
 			linei++
 			// TODO: padding?
-			lowi := i * rp.width
-			highi := (i + 1) * rp.width
+			lowi := i * width
+			highi := (i + 1) * width
 			if highi > textlen {
 				highi = textlen
 			}
-			mp.MovePrint(linei, 0, text[lowi:highi])
+			mp.MovePrint(linei, rp.padding, text[lowi:highi])
 		}
 	}
 

@@ -22,7 +22,7 @@ func main() {
 		log.Fatal("tsv.Decode", err)
 	}
 
-	ui := ui.UI{Versions: []bib.Version{version, version}}
+	ui := ui.UI{Versions: []bib.Version{version}}
 	if ui.Init() != nil {
 		log.Fatal("ui.Init", err)
 	}

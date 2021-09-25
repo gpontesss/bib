@@ -32,7 +32,8 @@ func (ui *UI) Init() error {
 		pad, err := NewVersionPad(
 			vsr,
 			padheight, padwidth,
-			0, i*padwidth)
+			0, i*padwidth,
+			2)
 		if err != nil {
 			return err
 		}
@@ -44,7 +45,20 @@ func (ui *UI) Init() error {
 	return nil
 }
 
-func (ui *UI) nextpad()            { ui.curpadi++ }
+func (ui *UI) nextpad() {
+	ui.curpadi++
+	if ui.curpadi >= len(ui.pads) {
+		ui.curpadi = 0
+	}
+}
+
+func (ui *UI) prevpad() {
+	ui.curpadi--
+	if ui.curpadi < 0 {
+		ui.curpadi = len(ui.pads) - 1
+	}
+}
+
 func (ui *UI) curpad() *VersionPad { return &ui.pads[ui.curpadi] }
 
 // End docs here.
@@ -58,47 +72,49 @@ func (ui *UI) End() {
 // Loop docs here.
 func (ui *UI) Loop() {
 	// Initially loads reference.
-	ref := bib.Ref{BookName: "Genesis", ChapterNum: 1, VerseNum: 1, Offset: 20}
-	ui.curpad().LoadRef(&ref)
+	ref := bib.Ref{BookName: "Genesis", ChapterNum: 1, VerseNum: 1, Offset: 100}
+	for i := range ui.pads {
+		pad := &ui.pads[i]
+		pad.LoadRef(&ref)
+	}
 
 	for {
-		ui.curpad().Refresh()
+		for i := range ui.pads {
+			pad := &ui.pads[i]
+			pad.Refresh()
+		}
 		goncurses.Update()
 		switch ui.curpad().GetChar() {
 		case 'q': // Quits.
 			return
 		case 'g': // Goes to top of text.
 			ui.curpad().Goto(0)
-			ui.curpad().NoutRefresh()
 		case 'G': // Goes to bottom of text.
 			ui.curpad().Goto(ui.curpad().maxoffset)
-			ui.curpad().NoutRefresh()
 		case 'k': // Scrolls up.
 			ui.curpad().Scroll(-1)
-			ui.curpad().NoutRefresh()
 		case 'j': // Scrolls down.
 			ui.curpad().Scroll(1)
-			ui.curpad().NoutRefresh()
 		case 'u': // Scrolls a bunch up.
 			ui.curpad().Scroll(-10)
-			ui.curpad().NoutRefresh()
 		case 'd': // Scrolls a bunch down.
 			ui.curpad().Scroll(10)
-			ui.curpad().NoutRefresh()
 		case 'l': // Advances chapter.
 			ref.ChapterNum++
 			if ref.ChapterNum > 50 {
 				ref.ChapterNum = 50
 			}
 			ui.curpad().LoadRef(&ref)
-			ui.curpad().NoutRefresh()
 		case 'h': // Retrocedes chapter.
 			ref.ChapterNum--
 			if ref.ChapterNum < 1 {
 				ref.ChapterNum = 1
 			}
 			ui.curpad().LoadRef(&ref)
-			ui.curpad().NoutRefresh()
+		case 'L': // Changes pad focus to the one on the right.
+			ui.nextpad()
+		case 'H': // Changes pad focus to the one on the left.
+			ui.prevpad()
 		}
 	}
 }

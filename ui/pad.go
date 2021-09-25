@@ -6,9 +6,9 @@ import (
 )
 
 // NewVersionPad docs here.
-func NewVersionPad(vsr *bib.Version, height, width, y, x int) (VersionPad, error) {
+func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionPad, error) {
 	// TODO: how to determine appropriate height?
-	pad, err := gc.NewPad(10*height, width)
+	pad, err := gc.NewPad(10*height, width-1)
 	if err != nil {
 		return VersionPad{}, err
 	}
@@ -20,6 +20,7 @@ func NewVersionPad(vsr *bib.Version, height, width, y, x int) (VersionPad, error
 		version:   vsr,
 		height:    height,
 		width:     width,
+		padding:   padding,
 		offset:    0,
 		maxoffset: 0,
 		x:         x,
@@ -33,6 +34,7 @@ type VersionPad struct {
 	version           *bib.Version
 	height, width     int
 	x, y              int
+	padding           int
 	offset, maxoffset int
 }
 
@@ -81,7 +83,7 @@ func (vsrp *VersionPad) Delete() { vsrp.pad.Delete() }
 // LoadRef docs here.
 func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	vsrp.pad.Erase()
-	refp := NewRefPrinter(ref, vsrp.version, vsrp.width)
+	refp := NewRefPrinter(ref, vsrp.version, vsrp.width, vsrp.padding)
 	vsrp.offset = 0
 	vsrp.maxoffset = refp.Print(vsrp.pad) - (vsrp.width / 2)
 	if vsrp.maxoffset < 0 {
