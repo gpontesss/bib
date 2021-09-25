@@ -13,8 +13,6 @@ func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionP
 		return VersionPad{}, err
 	}
 
-	// pad.ScrollOk(true)
-
 	return VersionPad{
 		pad:       pad,
 		version:   vsr,
@@ -61,7 +59,7 @@ func (vsrp *VersionPad) NoutRefresh() {
 		vsrp.offset, 0,
 		vsrp.y, vsrp.x,
 		// subtracts one, since coordinate is 0 based.
-		vsrp.height-1, vsrp.width-1)
+		vsrp.y+vsrp.height-1, vsrp.x+vsrp.width-1)
 }
 
 // Refresh docs here.
@@ -71,7 +69,7 @@ func (vsrp *VersionPad) Refresh() {
 		vsrp.offset, 0,
 		vsrp.y, vsrp.x,
 		// subtracts one, since coordinate is 0 based.
-		vsrp.height-1, vsrp.width-1)
+		vsrp.y+vsrp.height-1, vsrp.x+vsrp.width-1)
 }
 
 // GetChar docs here.

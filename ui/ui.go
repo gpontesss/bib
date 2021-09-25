@@ -2,13 +2,13 @@ package ui
 
 import (
 	"github.com/gpontesss/bib/bib"
-	"github.com/rthornton128/goncurses"
+	gc "github.com/rthornton128/goncurses"
 )
 
 // UI docs here.
 type UI struct {
 	Versions []bib.Version
-	stdscr   *goncurses.Window
+	stdscr   *gc.Window
 	pads     []VersionPad
 	curpadi  int
 }
@@ -16,11 +16,11 @@ type UI struct {
 // Init docs here.
 func (ui *UI) Init() error {
 	var err error
-	if ui.stdscr, err = goncurses.Init(); err != nil {
+	if ui.stdscr, err = gc.Init(); err != nil {
 		return err
 	}
-	goncurses.Cursor(1)   // Shows cursor.
-	goncurses.Echo(false) // Does not echo typing.
+	gc.Cursor(1)   // Shows cursor.
+	gc.Echo(false) // Does not echo typing.
 
 	rows, cols := ui.stdscr.MaxYX()
 	padheight := rows
@@ -33,7 +33,7 @@ func (ui *UI) Init() error {
 			vsr,
 			padheight, padwidth,
 			0, i*padwidth,
-			2)
+			1)
 		if err != nil {
 			return err
 		}
@@ -66,7 +66,7 @@ func (ui *UI) End() {
 	for _, pad := range ui.pads {
 		pad.Delete()
 	}
-	goncurses.End()
+	gc.End()
 }
 
 // Loop docs here.
@@ -83,7 +83,7 @@ func (ui *UI) Loop() {
 			pad := &ui.pads[i]
 			pad.Refresh()
 		}
-		goncurses.Update()
+		gc.Update()
 		switch ui.curpad().GetChar() {
 		case 'q': // Quits.
 			return
