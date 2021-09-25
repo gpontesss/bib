@@ -79,10 +79,7 @@ func (ui *UI) Loop() {
 	}
 
 	for {
-		for i := range ui.pads {
-			pad := &ui.pads[i]
-			pad.Refresh()
-		}
+		ui.curpad().Refresh()
 		gc.Update()
 		switch ui.curpad().GetChar() {
 		case 'q': // Quits.
@@ -91,21 +88,29 @@ func (ui *UI) Loop() {
 			ui.curpad().Goto(0)
 		case 'G': // Goes to bottom of text.
 			ui.curpad().Goto(ui.curpad().maxoffset)
-		case 'k': // Scrolls up.
-			ui.curpad().Scroll(-1)
-		case 'j': // Scrolls down.
-			ui.curpad().Scroll(1)
-		case 'u': // Scrolls a bunch up.
+		case 'k': // Move cursor up.
+			ui.curpad().MoveCursor(-1, 0)
+			// ui.curpad().Scroll(-1)
+		case 'j': // Move cursor down.
+			ui.curpad().MoveCursor(1, 0)
+			// ui.curpad().Scroll(1)
+		case 'h': // Move cursor left.
+			ui.curpad().MoveCursor(0, -1)
+		case 'l': // Move cursor right.
+			ui.curpad().MoveCursor(0, 1)
+		case 'u': // Move cursor a bunch up.
 			ui.curpad().Scroll(-10)
-		case 'd': // Scrolls a bunch down.
+			ui.curpad().MoveCursor(-10, 0)
+		case 'd': // Move cursor a bunch down.
 			ui.curpad().Scroll(10)
-		case 'l': // Advances chapter.
+			ui.curpad().MoveCursor(10, 0)
+		case 'n': // Advances chapter.
 			ref.ChapterNum++
 			if ref.ChapterNum > 50 {
 				ref.ChapterNum = 50
 			}
 			ui.curpad().LoadRef(&ref)
-		case 'h': // Retrocedes chapter.
+		case 'p': // Retrocedes chapter.
 			ref.ChapterNum--
 			if ref.ChapterNum < 1 {
 				ref.ChapterNum = 1
@@ -113,8 +118,10 @@ func (ui *UI) Loop() {
 			ui.curpad().LoadRef(&ref)
 		case 'L': // Changes pad focus to the one on the right.
 			ui.nextpad()
+			ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
 		case 'H': // Changes pad focus to the one on the left.
 			ui.prevpad()
+			ui.curpad().GotoCursor(0, 0)
 		}
 	}
 }
