@@ -1,44 +1,54 @@
 package ui
 
 import (
-	"github.com/gbin/goncurses"
 	"github.com/gpontesss/bib/bib"
+	gc "github.com/rthornton128/goncurses"
 )
 
 // NewVersionPad docs here.
 func NewVersionPad(vsr *bib.Version, height, width, y, x int) (VersionPad, error) {
-	pad, err := goncurses.NewPad(height, width)
+	// TODO: how to determine appropriate height?
+	pad, err := gc.NewPad(10*height, width)
 	if err != nil {
 		return VersionPad{}, err
 	}
 
-	pad.ScrollOk(true)
+	// pad.ScrollOk(true)
 
 	return VersionPad{
-		pad:     pad,
-		version: vsr,
-		height:  height,
-		width:   width,
-		offset:  0,
-		x:       x,
-		y:       y,
+		pad:       pad,
+		version:   vsr,
+		height:    height,
+		width:     width,
+		offset:    0,
+		maxoffset: 0,
+		x:         x,
+		y:         y,
 	}, nil
 }
 
 // VersionPad docs here.
 type VersionPad struct {
-	pad           *goncurses.Pad
-	version       *bib.Version
-	height, width int
-	x, y          int
-	offset        int
+	pad               *gc.Pad
+	version           *bib.Version
+	height, width     int
+	x, y              int
+	offset, maxoffset int
 }
 
 // Scroll docs here.
-func (vsrp *VersionPad) Scroll(scaler int) {
-	vsrp.offset += scaler
+func (vsrp *VersionPad) Scroll(offset int) {
+	y := vsrp.offset + offset
+	vsrp.Goto(y)
+}
+
+// Goto docs here.
+func (vsrp *VersionPad) Goto(y int) {
+	vsrp.offset = y
 	if vsrp.offset < 0 {
 		vsrp.offset = 0
+	} else if vsrp.offset > vsrp.maxoffset {
+		vsrp.offset = vsrp.maxoffset
 	}
 }
 
@@ -48,19 +58,34 @@ func (vsrp *VersionPad) NoutRefresh() {
 		// there won't be horizontal offsets for now.
 		vsrp.offset, 0,
 		vsrp.y, vsrp.x,
-		vsrp.height, vsrp.width)
+		// subtracts one, since coordinate is 0 based.
+		vsrp.height-1, vsrp.width-1)
 }
+
+// Refresh docs here.
+func (vsrp *VersionPad) Refresh() {
+	vsrp.pad.Refresh(
+		// there won't be horizontal offsets for now.
+		vsrp.offset, 0,
+		vsrp.y, vsrp.x,
+		// subtracts one, since coordinate is 0 based.
+		vsrp.height-1, vsrp.width-1)
+}
+
+// GetChar docs here.
+func (vsrp *VersionPad) GetChar() gc.Key { return vsrp.pad.GetChar() }
 
 // Delete docs here.
 func (vsrp *VersionPad) Delete() { vsrp.pad.Delete() }
 
-// DisplayRef docs here.
+// LoadRef docs here.
 func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
-	verses := ref.Verses(vsrp.version)
-
-	vsrp.pad.Clear()
-	vsrp.pad.MovePrintln(0, 0, vsrp.version.Name, " ", ref)
-	for _, verse := range verses {
-		vsrp.pad.Print(verse)
+	vsrp.pad.Erase()
+	refp := NewRefPrinter(ref, vsrp.version, vsrp.width)
+	vsrp.offset = 0
+	vsrp.maxoffset = refp.Print(vsrp.pad) - (vsrp.width / 2)
+	if vsrp.maxoffset < 0 {
+		vsrp.maxoffset = 0
 	}
+	vsrp.NoutRefresh()
 }

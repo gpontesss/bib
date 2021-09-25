@@ -25,7 +25,9 @@ func Decode(rdr io.Reader) (bib.Version, error) {
 		return bib.Version{}, err
 	}
 
-	lines := strings.Split(string(bs), "\n")
+	// for now, it reads weirdly linebreaks. it should work for all cases,
+	// though.
+	lines := strings.Split(string(bs), "\r\n")
 	for i := range lines {
 		line := lines[i]
 		// ignores empty lines

@@ -2,7 +2,4 @@ module github.com/gpontesss/bib
 
 go 1.16
 
-require (
-	github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5 // indirect
-	golang.org/x/tools v0.1.6 // indirect
-)
+require github.com/rthornton128/goncurses v0.0.0-20210908011339-931b33a34c71
