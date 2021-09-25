@@ -11,10 +11,10 @@ import (
 // Decode docs here.
 // TODO: something about metadata in TSV.
 // TODO: helpful errors.
-func Decode(rdr io.Reader) (bib.Version, error) {
+func Decode(rdr io.Reader, name string) (bib.Version, error) {
 	version := bib.Version{
 		// TODO: include metadata in file and extract it from there.
-		Name:  "Placeholder",
+		Name:  name,
 		Books: []bib.Book{},
 	}
 
@@ -36,7 +36,7 @@ func Decode(rdr io.Reader) (bib.Version, error) {
 		}
 
 		lineparts := strings.Split(line, "\t")
-		bookname, ref, text := lineparts[0], lineparts[1], lineparts[2]
+		bookname, chapnumstr, versenumstr, text := lineparts[0], lineparts[1], lineparts[2], lineparts[3]
 
 		var book *bib.Book
 		if book = version.GetBook(bookname); book == nil {
@@ -47,9 +47,6 @@ func Decode(rdr io.Reader) (bib.Version, error) {
 			})
 			book = &version.Books[len(version.Books)-1]
 		}
-
-		refparts := strings.Split(ref, ":")
-		chapnumstr, versenumstr := refparts[0], refparts[1]
 
 		var chapnum, versenum int
 		if chapnum, err = strconv.Atoi(chapnumstr); err != nil {

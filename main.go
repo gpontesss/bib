@@ -12,18 +12,24 @@ import (
 )
 
 func main() {
-	file, err := os.Open("./kjv.tsv")
-	if err != nil {
-		log.Fatal("os.Open", err)
+	filenames := []string{"./kjv.tsv", "./vul.tsv"}
+	vsrs := make([]*bib.Version, len(filenames))
+
+	for i, filename := range filenames {
+		file, err := os.Open(filename)
+		if err != nil {
+			log.Fatal("os.Open", err)
+		}
+		version, err := tsv.Decode(file, filename)
+		if err != nil {
+			log.Fatal("tsv.Decode", err)
+		}
+		vsrs[i] = &version
+		file.Close()
 	}
 
-	version, err := tsv.Decode(file)
-	if err != nil {
-		log.Fatal("tsv.Decode", err)
-	}
-
-	ui := ui.UI{Versions: []bib.Version{version, version, version}}
-	if ui.Init() != nil {
+	ui := ui.UI{Versions: vsrs}
+	if err := ui.Init(); err != nil {
 		log.Fatal("ui.Init", err)
 	}
 	defer ui.End()

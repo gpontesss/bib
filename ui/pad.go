@@ -8,7 +8,7 @@ import (
 // NewVersionPad docs here.
 func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionPad, error) {
 	// TODO: how to determine appropriate height?
-	pad, err := gc.NewPad(10*height, width-1)
+	pad, err := gc.NewPad(10*height, width)
 	if err != nil {
 		return VersionPad{}, err
 	}
@@ -17,9 +17,9 @@ func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionP
 	horpadding, vertpadding := padding, (padding / 2)
 
 	vsrp := VersionPad{
-		pad:     pad,
-		version: vsr,
-		height:  height, width: width,
+		pad:    pad,
+		vsr:    vsr,
+		height: height, width: width,
 		horpadding: horpadding, vertpadding: vertpadding,
 		offset: 0, maxoffset: 0,
 		x: x, y: y,
@@ -31,7 +31,7 @@ func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionP
 // VersionPad docs here.
 type VersionPad struct {
 	pad                     *gc.Pad
-	version                 *bib.Version
+	vsr                     *bib.Version
 	height, width           int
 	x, y                    int
 	horpadding, vertpadding int
@@ -43,6 +43,9 @@ func (vsrp *VersionPad) minx() int { return vsrp.horpadding }
 func (vsrp *VersionPad) maxx() int { return vsrp.width - vsrp.horpadding }
 func (vsrp *VersionPad) miny() int { return vsrp.vertpadding }
 func (vsrp *VersionPad) maxy() int { return vsrp.maxoffset }
+
+// SetVersion docs here.
+func (vsrp *VersionPad) SetVersion(vsr *bib.Version) { vsrp.vsr = vsr }
 
 // MoveCursor docs here.
 func (vsrp *VersionPad) MoveCursor(yoffset, xoffset int) {
@@ -89,8 +92,7 @@ func (vsrp *VersionPad) NoutRefresh() {
 		// there won't be horizontal offsets for now.
 		vsrp.offset, 0,
 		vsrp.y, vsrp.x,
-		// subtracts one, since coordinate is 0 based.
-		vsrp.y+vsrp.height-1, vsrp.x+vsrp.width-1)
+		vsrp.y+vsrp.height, vsrp.x+vsrp.width)
 }
 
 // Refresh docs here.
@@ -99,8 +101,7 @@ func (vsrp *VersionPad) Refresh() {
 		// there won't be horizontal offsets for now.
 		vsrp.offset, 0,
 		vsrp.y, vsrp.x,
-		// subtracts one, since coordinate is 0 based.
-		vsrp.y+vsrp.height-1, vsrp.x+vsrp.width-1)
+		vsrp.y+vsrp.height, vsrp.x+vsrp.width)
 }
 
 // GetChar docs here.
@@ -112,11 +113,12 @@ func (vsrp *VersionPad) Delete() { vsrp.pad.Delete() }
 // LoadRef docs here.
 func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	vsrp.pad.Erase()
-	refp := NewRefPrinter(ref, vsrp.version, vsrp.width, vsrp.horpadding)
-	vsrp.offset = 0
+	refp := NewRefPrinter(ref, vsrp.vsr, vsrp.width, vsrp.horpadding)
 	vsrp.maxoffset = refp.Print(vsrp.pad) + 1
 	if vsrp.maxoffset < 0 {
 		vsrp.maxoffset = 0
 	}
+	vsrp.offset = 0
+	vsrp.GotoCursor(vsrp.miny(), vsrp.minx())
 	vsrp.NoutRefresh()
 }

@@ -20,11 +20,15 @@ func (iter *WordIter) Next() bool {
 	}
 
 	iter.lowi = iter.highi
-	for unicode.IsSpace(rune(iter.str[iter.lowi])) && iter.lowi < len(iter.str) {
+	for iter.lowi < len(iter.str) &&
+		unicode.IsSpace(rune(iter.str[iter.lowi])) {
 		iter.lowi++
 	}
+
 	iter.highi = iter.lowi
-	for unicode.IsLetter(rune(iter.str[iter.highi])) && iter.highi < len(iter.str) {
+	for iter.highi < len(iter.str) &&
+		(unicode.IsLetter(rune(iter.str[iter.highi])) ||
+			unicode.IsPunct(rune(iter.str[iter.highi]))) {
 		iter.highi++
 	}
 

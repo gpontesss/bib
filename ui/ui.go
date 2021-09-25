@@ -7,7 +7,8 @@ import (
 
 // UI docs here.
 type UI struct {
-	Versions []bib.Version
+	Versions []*bib.Version
+	vsrmenu  VersionMenu
 	stdscr   *gc.Window
 	pads     []VersionPad
 	curpadi  int
@@ -27,11 +28,12 @@ func (ui *UI) Init() error {
 	padwidth := cols / len(ui.Versions)
 
 	ui.pads = make([]VersionPad, 0, len(ui.Versions))
-	for i := range ui.Versions {
-		vsr := &ui.Versions[i]
+	for i, vsr := range ui.Versions {
 		pad, err := NewVersionPad(
 			vsr,
-			padheight, padwidth,
+			// for some reason, if height is used integrally, nothing is
+			// rendered.
+			padheight-1, padwidth,
 			0, i*padwidth,
 			1)
 		if err != nil {
@@ -42,6 +44,12 @@ func (ui *UI) Init() error {
 
 	// by default, first pad is selected.
 	ui.curpadi = 0
+
+	ui.vsrmenu, err = NewVersionMenu(
+		rows/4, cols/4,
+		rows/2, cols/2,
+		ui.Versions...,
+	)
 	return nil
 }
 
@@ -69,6 +77,19 @@ func (ui *UI) End() {
 	gc.End()
 }
 
+// Refresh docs here.
+func (ui *UI) Refresh(all bool) {
+	if all {
+		for i := range ui.pads {
+			pad := &ui.pads[i]
+			pad.NoutRefresh()
+		}
+	} else {
+		ui.curpad().NoutRefresh()
+	}
+	gc.Update()
+}
+
 // Loop docs here.
 func (ui *UI) Loop() {
 	// Initially loads reference.
@@ -83,16 +104,15 @@ func (ui *UI) Loop() {
 	curpad.MoveCursor(curpad.miny(), curpad.minx())
 
 	for {
+		ui.Refresh(false)
 		curpad := ui.curpad()
-		curpad.Refresh()
-		gc.Update()
 		switch curpad.GetChar() {
 		case 'q': // Quits.
 			return
 		case 'g': // Goes to top of text.
-			curpad.GotoCursor(curpad.miny(), 0)
+			curpad.GotoCursor(curpad.miny(), curpad.minx())
 		case 'G': // Goes to bottom of text.
-			curpad.GotoCursor(curpad.maxy(), 0)
+			curpad.GotoCursor(curpad.maxy(), curpad.minx())
 		case '_':
 			curpad.GotoCursor(curpad.cursory, curpad.minx())
 		case '$':
@@ -126,6 +146,16 @@ func (ui *UI) Loop() {
 			ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
 		case 'H': // Changes pad focus to the one on the left.
 			ui.prevpad()
+			ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
+		case gc.KEY_TAB:
+			if vsr, err := ui.vsrmenu.Select(); err == nil && vsr != nil {
+				curpad.SetVersion(vsr)
+				// Refreshes reference to show updated version's text.
+				curpad.LoadRef(&ref)
+			}
+			// always refreshes all for removing menu window "shadow".
+			ui.Refresh(true)
+			// and moves cursor to where it should be, in the active pad.
 			ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
 		}
 	}
