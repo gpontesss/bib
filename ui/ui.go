@@ -78,50 +78,55 @@ func (ui *UI) Loop() {
 		pad.LoadRef(&ref)
 	}
 
+	// Initializes cursor in right position
+	curpad := ui.curpad()
+	curpad.MoveCursor(curpad.miny(), curpad.minx())
+
 	for {
-		ui.curpad().Refresh()
+		curpad := ui.curpad()
+		curpad.Refresh()
 		gc.Update()
-		switch ui.curpad().GetChar() {
+		switch curpad.GetChar() {
 		case 'q': // Quits.
 			return
 		case 'g': // Goes to top of text.
-			ui.curpad().Goto(0)
+			curpad.GotoCursor(curpad.miny(), 0)
 		case 'G': // Goes to bottom of text.
-			ui.curpad().Goto(ui.curpad().maxoffset)
-		case 'k': // Move cursor up.
-			ui.curpad().MoveCursor(-1, 0)
-			// ui.curpad().Scroll(-1)
-		case 'j': // Move cursor down.
-			ui.curpad().MoveCursor(1, 0)
-			// ui.curpad().Scroll(1)
-		case 'h': // Move cursor left.
-			ui.curpad().MoveCursor(0, -1)
-		case 'l': // Move cursor right.
-			ui.curpad().MoveCursor(0, 1)
-		case 'u': // Move cursor a bunch up.
-			ui.curpad().Scroll(-10)
-			ui.curpad().MoveCursor(-10, 0)
-		case 'd': // Move cursor a bunch down.
-			ui.curpad().Scroll(10)
-			ui.curpad().MoveCursor(10, 0)
+			curpad.GotoCursor(curpad.maxy(), 0)
+		case '_':
+			curpad.GotoCursor(curpad.cursory, curpad.minx())
+		case '$':
+			curpad.GotoCursor(curpad.cursory, curpad.maxx())
+		case 'k': // Moves cursor up.
+			curpad.MoveCursor(-1, 0)
+		case 'j': // Moves cursor down.
+			curpad.MoveCursor(1, 0)
+		case 'h': // Moves cursor left.
+			curpad.MoveCursor(0, -1)
+		case 'l': // Moves cursor right.
+			curpad.MoveCursor(0, 1)
+		case 'u': // Moves cursor half-page up.
+			curpad.Scroll(-curpad.height / 2)
+		case 'd': // Moves cursor half-page down.
+			curpad.Scroll(curpad.height / 2)
 		case 'n': // Advances chapter.
 			ref.ChapterNum++
 			if ref.ChapterNum > 50 {
 				ref.ChapterNum = 50
 			}
-			ui.curpad().LoadRef(&ref)
+			curpad.LoadRef(&ref)
 		case 'p': // Retrocedes chapter.
 			ref.ChapterNum--
 			if ref.ChapterNum < 1 {
 				ref.ChapterNum = 1
 			}
-			ui.curpad().LoadRef(&ref)
+			curpad.LoadRef(&ref)
 		case 'L': // Changes pad focus to the one on the right.
 			ui.nextpad()
 			ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
 		case 'H': // Changes pad focus to the one on the left.
 			ui.prevpad()
-			ui.curpad().GotoCursor(0, 0)
+			ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
 		}
 	}
 }

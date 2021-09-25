@@ -13,53 +13,59 @@ func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionP
 		return VersionPad{}, err
 	}
 
-	return VersionPad{
+	// height/width ration ~ 2
+	horpadding, vertpadding := padding, (padding / 2)
+
+	vsrp := VersionPad{
 		pad:     pad,
 		version: vsr,
 		height:  height, width: width,
-		padding: padding,
-		offset:  0, maxoffset: 0,
+		horpadding: horpadding, vertpadding: vertpadding,
+		offset: 0, maxoffset: 0,
 		x: x, y: y,
-		// TODO: deal with vert padding.
 		cursorx: 0, cursory: 0,
-	}, nil
+	}
+	return vsrp, nil
 }
 
 // VersionPad docs here.
 type VersionPad struct {
-	pad               *gc.Pad
-	version           *bib.Version
-	height, width     int
-	x, y              int
-	padding           int
-	offset, maxoffset int
-	cursorx, cursory  int
+	pad                     *gc.Pad
+	version                 *bib.Version
+	height, width           int
+	x, y                    int
+	horpadding, vertpadding int
+	offset, maxoffset       int
+	cursorx, cursory        int
 }
+
+func (vsrp *VersionPad) minx() int { return vsrp.horpadding }
+func (vsrp *VersionPad) maxx() int { return vsrp.width - vsrp.horpadding }
+func (vsrp *VersionPad) miny() int { return vsrp.vertpadding }
+func (vsrp *VersionPad) maxy() int { return vsrp.maxoffset }
 
 // MoveCursor docs here.
 func (vsrp *VersionPad) MoveCursor(yoffset, xoffset int) {
-	y := vsrp.cursory + yoffset
-	x := vsrp.cursorx + xoffset
-	vsrp.GotoCursor(y, x)
+	vsrp.GotoCursor(vsrp.cursory+yoffset, vsrp.cursorx+xoffset)
 }
 
 // GotoCursor docs here.
 func (vsrp *VersionPad) GotoCursor(y, x int) {
-	if miny := 0; y < miny {
+	if miny := vsrp.miny(); y < miny {
 		y = miny
-	} else if maxy := vsrp.maxoffset; y > maxy {
+	} else if maxy := vsrp.maxy() - 1; y > maxy {
 		y = maxy
 	}
-	if minx := 0; x < minx {
+	if minx := vsrp.minx(); x < minx {
 		x = minx
-	} else if maxx := vsrp.width; x > maxx {
+	} else if maxx := vsrp.maxx() - 1; x > maxx {
 		x = maxx
 	}
 
-	if y-vsrp.offset < 0 {
-		vsrp.Scroll(-1)
-	} else if y-vsrp.offset > vsrp.height {
-		vsrp.Scroll(1)
+	if yoffset := y - vsrp.offset; yoffset < 0 {
+		vsrp.Scroll(yoffset)
+	} else if yoffset := y - vsrp.offset - vsrp.height + 1; yoffset > 0 {
+		vsrp.Scroll(yoffset)
 	}
 
 	vsrp.cursory, vsrp.cursorx = y, x
@@ -68,19 +74,13 @@ func (vsrp *VersionPad) GotoCursor(y, x int) {
 
 // Scroll docs here.
 func (vsrp *VersionPad) Scroll(offset int) {
-	y := vsrp.offset + offset
-	vsrp.Goto(y)
-}
-
-// Goto docs here.
-func (vsrp *VersionPad) Goto(y int) {
-	vsrp.offset = y
+	vsrp.offset = vsrp.offset + offset
 	if vsrp.offset < 0 {
 		vsrp.offset = 0
-	} else if vsrp.offset > vsrp.maxoffset {
-		vsrp.offset = vsrp.maxoffset
+	} else if vsrp.offset > vsrp.maxoffset-1 {
+		vsrp.offset = vsrp.maxoffset - 1
 	}
-	vsrp.GotoCursor(y, 0)
+	vsrp.GotoCursor(offset+vsrp.cursory, vsrp.cursorx)
 }
 
 // NoutRefresh docs here.
@@ -112,7 +112,7 @@ func (vsrp *VersionPad) Delete() { vsrp.pad.Delete() }
 // LoadRef docs here.
 func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	vsrp.pad.Erase()
-	refp := NewRefPrinter(ref, vsrp.version, vsrp.width, vsrp.padding)
+	refp := NewRefPrinter(ref, vsrp.version, vsrp.width, vsrp.horpadding)
 	vsrp.offset = 0
 	vsrp.maxoffset = refp.Print(vsrp.pad) + 1
 	if vsrp.maxoffset < 0 {
