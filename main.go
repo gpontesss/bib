@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gpontesss/bib/bib"
 	"github.com/gpontesss/bib/encoding/tsv"
@@ -26,5 +28,18 @@ func main() {
 	}
 	defer ui.End()
 
-	ui.Loop()
+	cancelchan := make(chan os.Signal, 1)
+	signal.Notify(cancelchan, syscall.SIGTERM, syscall.SIGINT)
+
+	loopend := make(chan struct{})
+	go func() {
+		ui.Loop()
+		loopend <- struct{}{}
+	}()
+	select {
+	case <-loopend:
+		log.Print("Exiting application...")
+	case sig := <-cancelchan:
+		log.Printf("Caught signal: %v", sig)
+	}
 }
