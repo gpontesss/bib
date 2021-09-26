@@ -93,7 +93,7 @@ func (ui *UI) Refresh(all bool) {
 // Loop docs here.
 func (ui *UI) Loop() {
 	// Initially loads reference.
-	ref := bib.Ref{BookName: "Genesis", ChapterNum: 1, VerseNum: 1, Offset: 100}
+	ref := bib.Ref{BookName: "Genesis", ChapterNum: 1}
 	for i := range ui.pads {
 		pad := &ui.pads[i]
 		pad.LoadRef(&ref)
@@ -130,17 +130,15 @@ func (ui *UI) Loop() {
 		case 'd': // Moves cursor half-page down.
 			curpad.Scroll(curpad.height / 2)
 		case 'n': // Advances chapter.
-			ref.ChapterNum++
-			if ref.ChapterNum > 50 {
-				ref.ChapterNum = 50
+			if next := curpad.RefLoaded().Chapter(curpad.vsr).Next(); next != nil {
+				ref := next.Ref()
+				curpad.LoadRef(&ref)
 			}
-			curpad.LoadRef(&ref)
 		case 'p': // Retrocedes chapter.
-			ref.ChapterNum--
-			if ref.ChapterNum < 1 {
-				ref.ChapterNum = 1
+			if prev := curpad.RefLoaded().Chapter(curpad.vsr).Previous(); prev != nil {
+				ref := prev.Ref()
+				curpad.LoadRef(&ref)
 			}
-			curpad.LoadRef(&ref)
 		case 'L': // Changes pad focus to the one on the right.
 			ui.nextpad()
 			ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
@@ -151,7 +149,7 @@ func (ui *UI) Loop() {
 			if vsr, err := ui.vsrmenu.Select(); err == nil && vsr != nil {
 				curpad.SetVersion(vsr)
 				// Refreshes reference to show updated version's text.
-				curpad.LoadRef(&ref)
+				curpad.LoadRef(&curpad.refloaded)
 			}
 			// always refreshes all for removing menu window "shadow".
 			ui.Refresh(true)

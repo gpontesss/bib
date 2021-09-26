@@ -24,6 +24,7 @@ func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionP
 		offset: 0, maxoffset: 0,
 		x: x, y: y,
 		cursorx: 0, cursory: 0,
+		refloaded: bib.Ref{},
 	}
 	return vsrp, nil
 }
@@ -37,6 +38,7 @@ type VersionPad struct {
 	horpadding, vertpadding int
 	offset, maxoffset       int
 	cursorx, cursory        int
+	refloaded               bib.Ref
 }
 
 func (vsrp *VersionPad) minx() int { return vsrp.horpadding }
@@ -110,10 +112,14 @@ func (vsrp *VersionPad) GetChar() gc.Key { return vsrp.pad.GetChar() }
 // Delete docs here.
 func (vsrp *VersionPad) Delete() { vsrp.pad.Delete() }
 
+// RefLoaded docs here.
+func (vsrp *VersionPad) RefLoaded() *bib.Ref { return &vsrp.refloaded }
+
 // LoadRef docs here.
 func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
+	vsrp.refloaded = *ref
 	vsrp.pad.Erase()
-	refp := NewRefPrinter(ref, vsrp.vsr, vsrp.width, vsrp.horpadding)
+	refp := NewRefPrinter(&vsrp.refloaded, vsrp.vsr, vsrp.width, vsrp.horpadding)
 	vsrp.maxoffset = refp.Print(vsrp.pad) + 1
 	if vsrp.maxoffset < 0 {
 		vsrp.maxoffset = 0
