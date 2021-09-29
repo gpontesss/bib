@@ -99,7 +99,7 @@ func (ui *UI) Refresh(all bool) {
 // Loop docs here.
 func (ui *UI) Loop() {
 	// Initially loads reference.
-	ref := bib.Ref{BookName: "Genesis", ChapterNum: 1}
+	ref := bib.Ref{BookName: "John", ChapterNum: 1}
 	for i := range ui.pads {
 		pad := &ui.pads[i]
 		pad.LoadRef(&ref)
