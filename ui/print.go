@@ -33,9 +33,7 @@ func (rp *RefPrinter) Print(pad *gc.Pad) int {
 	vertpadding := (rp.padding / 2)
 	width := rp.width - (2 * rp.padding)
 
-	pad.MovePrint(vertpadding, rp.padding, rp.vsr.Name, " ", rp.ref) // header
-
-	linei := vertpadding + 1
+	linei := vertpadding
 	for _, verse := range rp.ref.Verses(rp.vsr) {
 		ref := verse.Ref()
 		refstr := ref.String()

@@ -15,8 +15,13 @@ func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionP
 
 	// height/width ration ~ 2
 	horpadding, vertpadding := padding, (padding / 2)
+	header, err := gc.NewWindow(1, width-(horpadding*2), y+vertpadding, x+horpadding)
+	if err != nil {
+		return VersionPad{}, err
+	}
 
 	vsrp := VersionPad{
+		header: header,
 		pad:    pad,
 		vsr:    vsr,
 		height: height, width: width,
@@ -31,6 +36,7 @@ func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionP
 
 // VersionPad docs here.
 type VersionPad struct {
+	header                  *gc.Window
 	pad                     *gc.Pad
 	vsr                     *bib.Version
 	height, width           int
@@ -43,8 +49,8 @@ type VersionPad struct {
 
 func (vsrp *VersionPad) minx() int { return vsrp.horpadding }
 func (vsrp *VersionPad) maxx() int { return vsrp.width - vsrp.horpadding }
-func (vsrp *VersionPad) miny() int { return vsrp.vertpadding }
-func (vsrp *VersionPad) maxy() int { return vsrp.maxoffset }
+func (vsrp *VersionPad) miny() int { return vsrp.vertpadding + 1 /* +1 accounts header. */ }
+func (vsrp *VersionPad) maxy() int { return vsrp.maxoffset - 1 /* -1 accounts header. */ }
 
 // SetVersion docs here.
 func (vsrp *VersionPad) SetVersion(vsr *bib.Version) { vsrp.vsr = vsr }
@@ -93,8 +99,11 @@ func (vsrp *VersionPad) NoutRefresh() {
 	vsrp.pad.NoutRefresh(
 		// there won't be horizontal offsets for now.
 		vsrp.offset, 0,
-		vsrp.y, vsrp.x,
-		vsrp.y+vsrp.height, vsrp.x+vsrp.width)
+		// +1 accounts the header.
+		vsrp.y+1, vsrp.x,
+		// -1 accounts the header.
+		vsrp.y+vsrp.height-1, vsrp.x+vsrp.width)
+	vsrp.header.NoutRefresh()
 }
 
 // Refresh docs here.
@@ -102,8 +111,11 @@ func (vsrp *VersionPad) Refresh() {
 	vsrp.pad.Refresh(
 		// there won't be horizontal offsets for now.
 		vsrp.offset, 0,
-		vsrp.y, vsrp.x,
-		vsrp.y+vsrp.height, vsrp.x+vsrp.width)
+		// +1 accounts the header.
+		vsrp.y+1, vsrp.x,
+		// -1 accounts the header.
+		vsrp.y+vsrp.height-1, vsrp.x+vsrp.width)
+	vsrp.header.Refresh()
 }
 
 // GetChar docs here.
@@ -119,6 +131,12 @@ func (vsrp *VersionPad) RefLoaded() *bib.Ref { return &vsrp.refloaded }
 func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	vsrp.refloaded = *ref
 	vsrp.pad.Erase()
+
+	vsrp.header.Erase()
+	vsrp.header.SetBackground(gc.ColorPair(2))
+	vsrp.header.AttrOn(gc.ColorPair(2) | gc.A_BOLD)
+	vsrp.header.MovePrint(0, 0, vsrp.vsr.Name, " ", &vsrp.refloaded) // header
+
 	refp := NewRefPrinter(&vsrp.refloaded, vsrp.vsr, vsrp.width, vsrp.horpadding)
 	vsrp.maxoffset = refp.Print(vsrp.pad) + 1
 	if vsrp.maxoffset < 0 {

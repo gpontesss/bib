@@ -26,8 +26,8 @@ func (ui *UI) Init() error {
 	gc.Cursor(1)   // Shows cursor.
 	gc.Echo(false) // Does not echo typing.
 
-	// Verse highlighting
-	gc.InitPair(1, gc.C_WHITE, 0)
+	gc.InitPair(1, gc.C_WHITE, 0)         // Verse highlighting
+	gc.InitPair(2, gc.C_WHITE, gc.C_BLUE) // Header
 
 	rows, cols := ui.stdscr.MaxYX()
 	padheight := rows
