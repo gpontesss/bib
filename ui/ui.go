@@ -20,8 +20,14 @@ func (ui *UI) Init() error {
 	if ui.stdscr, err = gc.Init(); err != nil {
 		return err
 	}
+	if err := gc.StartColor(); err != nil {
+		return err
+	}
 	gc.Cursor(1)   // Shows cursor.
 	gc.Echo(false) // Does not echo typing.
+
+	// Verse highlighting
+	gc.InitPair(1, gc.C_WHITE, 0)
 
 	rows, cols := ui.stdscr.MaxYX()
 	padheight := rows

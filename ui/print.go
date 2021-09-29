@@ -3,15 +3,9 @@ package ui
 import (
 	"unicode/utf8"
 
+	gc "github.com/gbin/goncurses"
 	"github.com/gpontesss/bib/bib"
 )
-
-// MovePrinter docs here.
-type MovePrinter interface {
-	MovePrint(y, x int, args ...interface{})
-	MovePrintln(y, x int, args ...interface{})
-	MovePrintf(y, x int, fmt string, args ...interface{})
-}
 
 // RefPrinter docs here.
 type RefPrinter struct {
@@ -34,32 +28,38 @@ func NewRefPrinter(ref *bib.Ref, vsr *bib.Version, width, padding int) RefPrinte
 func (rp *RefPrinter) SetVersion(vsr *bib.Version) { rp.vsr = vsr }
 
 // Print docs here.
-func (rp *RefPrinter) Print(mp MovePrinter) int {
+func (rp *RefPrinter) Print(pad *gc.Pad) int {
 	// height/width ration ~ 2
 	vertpadding := (rp.padding / 2)
 	width := rp.width - (2 * rp.padding)
 
-	mp.MovePrint(vertpadding, rp.padding, rp.vsr.Name, " ", rp.ref) // header
+	pad.MovePrint(vertpadding, rp.padding, rp.vsr.Name, " ", rp.ref) // header
 
 	linei := vertpadding + 1
 	for _, verse := range rp.ref.Verses(rp.vsr) {
-		text := verse.String()
+		ref := verse.Ref()
+		refstr := ref.String()
 
-		linelen := 0
-		wordsiter := NewWordIter(text)
+		pad.AttrOn(gc.ColorPair(1) | gc.A_BOLD)
+		pad.MovePrint(linei, rp.padding, refstr)
+		pad.AttrOff(gc.ColorPair(1) | gc.A_BOLD)
+
+		// RuneCountInString is used for compatibility with UTF-8 strings,
+		// for, in some cases, len will return a number greater than
+		// desired.
+		// +1 accounts for space
+		linelen := utf8.RuneCountInString(refstr) + 1
+		wordsiter := NewWordIter(verse.Text)
 
 		for wordsiter.Next() {
 			// TODO: what if words are bigger than the max line length?
 			word := wordsiter.Value()
 
-			// RuneCountInString is used for compatibility with UTF-8 strings,
-			// for, in some cases, len will return a number greater than
-			// desired.
 			if linelen+utf8.RuneCountInString(word) > width {
 				linelen = 0
 				linei++
 			}
-			mp.MovePrint(linei, rp.padding+linelen, word, " ")
+			pad.MovePrint(linei, rp.padding+linelen, word)
 			// +1 accounts for space
 			linelen += utf8.RuneCountInString(word) + 1
 		}
