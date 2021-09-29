@@ -125,8 +125,12 @@ func (ui *UI) Loop() {
 			curpad.GotoCursor(curpad.cursory, curpad.maxx())
 		case 'k': // Moves cursor up.
 			curpad.MoveCursor(-1, 0)
+		case 'K': // Scrolls 1 row up.
+			curpad.Scroll(-1)
 		case 'j': // Moves cursor down.
 			curpad.MoveCursor(1, 0)
+		case 'J': // Scrolls 1 row down.
+			curpad.Scroll(1)
 		case 'h': // Moves cursor left.
 			curpad.MoveCursor(0, -1)
 		case 'l': // Moves cursor right.
