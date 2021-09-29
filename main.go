@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	filenames := []string{"./kjv.tsv", "./vul.tsv"}
+	filenames := []string{"./kjv.tsv", "./vul.tsv", "./sep.tsv"}
 	vsrs := make([]*bib.Version, len(filenames))
 
 	for i, filename := range filenames {

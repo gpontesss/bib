@@ -4,12 +4,12 @@ import "unicode"
 
 // NewWordIter docs here.
 func NewWordIter(str string) WordIter {
-	return WordIter{str, 0, 0}
+	return WordIter{[]rune(str), 0, 0}
 }
 
 // WordIter docs here.
 type WordIter struct {
-	str         string
+	str         []rune
 	lowi, highi int
 }
 
@@ -21,15 +21,13 @@ func (iter *WordIter) Next() bool {
 
 	iter.lowi = iter.highi
 	for iter.lowi < len(iter.str) &&
-		unicode.IsSpace(rune(iter.str[iter.lowi])) {
+		unicode.IsSpace(iter.str[iter.lowi]) {
 		iter.lowi++
 	}
 
 	iter.highi = iter.lowi
 	for iter.highi < len(iter.str) &&
-		(unicode.IsLetter(rune(iter.str[iter.highi])) ||
-			unicode.IsPunct(rune(iter.str[iter.highi])) ||
-			unicode.IsNumber(rune(iter.str[iter.highi]))) {
+		(!unicode.IsSpace(iter.str[iter.highi])) {
 		iter.highi++
 	}
 
@@ -37,4 +35,4 @@ func (iter *WordIter) Next() bool {
 }
 
 // Value docs here.
-func (iter *WordIter) Value() string { return iter.str[iter.lowi:iter.highi] }
+func (iter *WordIter) Value() string { return string(iter.str[iter.lowi:iter.highi]) }

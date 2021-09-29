@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"unicode/utf8"
+
 	"github.com/gpontesss/bib/bib"
 )
 
@@ -50,13 +52,16 @@ func (rp *RefPrinter) Print(mp MovePrinter) int {
 			// TODO: what if words are bigger than the max line length?
 			word := wordsiter.Value()
 
-			if linelen+len(word) > width {
+			// RuneCountInString is used for compatibility with UTF-8 strings,
+			// for, in some cases, len will return a number greater than
+			// desired.
+			if linelen+utf8.RuneCountInString(word) > width {
 				linelen = 0
 				linei++
 			}
 			mp.MovePrint(linei, rp.padding+linelen, word, " ")
 			// +1 accounts for space
-			linelen += len(word) + 1
+			linelen += utf8.RuneCountInString(word) + 1
 		}
 		linei++
 	}
