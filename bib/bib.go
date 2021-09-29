@@ -67,6 +67,50 @@ func (bk *Book) Verses() []*Verse {
 	return verses
 }
 
+// Next docs here.
+func (bk *Book) Next() *Book {
+	vsr := bk.Version
+	for i := range vsr.Books {
+		if bookptr := &vsr.Books[i]; bookptr == bk {
+			if i == len(vsr.Books)-1 {
+				return nil
+			}
+			return &vsr.Books[i+1]
+		}
+	}
+	return nil
+}
+
+// Previous docs here.
+func (bk *Book) Previous() *Book {
+	vsr := bk.Version
+	for i := range vsr.Books {
+		if bookptr := &vsr.Books[i]; bookptr == bk {
+			if i == 0 {
+				return nil
+			}
+			return &vsr.Books[i-1]
+		}
+	}
+	return nil
+}
+
+// FirstChapter docs here.
+func (bk *Book) FirstChapter() *Chapter {
+	if len(bk.Chapters) <= 0 {
+		return nil
+	}
+
+	first := &bk.Chapters[0]
+	for i := 1; i < len(bk.Chapters); i++ {
+		chap := &bk.Chapters[i]
+		if first.Number > chap.Number {
+			first = chap
+		}
+	}
+	return first
+}
+
 // Chapter docs here.
 type Chapter struct {
 	// Book is a reference to the book which the chapter belongs to.

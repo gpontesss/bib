@@ -140,9 +140,19 @@ func (ui *UI) Loop() {
 				ref := next.Ref()
 				curpad.LoadRef(&ref)
 			}
+		case 'N': // Advances book.
+			if next := curpad.RefLoaded().Book(curpad.vsr).Next(); next != nil {
+				ref := next.FirstChapter().Ref()
+				curpad.LoadRef(&ref)
+			}
 		case 'p': // Retrocedes chapter.
 			if prev := curpad.RefLoaded().Chapter(curpad.vsr).Previous(); prev != nil {
 				ref := prev.Ref()
+				curpad.LoadRef(&ref)
+			}
+		case 'P': // Retrocedes book.
+			if prev := curpad.RefLoaded().Book(curpad.vsr).Previous(); prev != nil {
+				ref := prev.FirstChapter().Ref()
 				curpad.LoadRef(&ref)
 			}
 		case 'L': // Changes pad focus to the one on the right.
