@@ -115,6 +115,8 @@ func (ui *UI) Loop() {
 		switch curpad.GetChar() {
 		case 'q': // Quits.
 			return
+		case 'c': // A case for debugging breakpoints.
+			continue
 		case 'g': // Goes to top of text.
 			curpad.GotoCursor(curpad.miny(), curpad.minx())
 		case 'G': // Goes to bottom of text.
