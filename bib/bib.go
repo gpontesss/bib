@@ -95,10 +95,10 @@ func (chap *Chapter) GetVerse(num int) *Verse {
 
 // VerseRange docs here.
 func (chap *Chapter) VerseRange(from, to int) []*Verse {
-	verses := make([]*Verse, to-from+1)
+	verses := make([]*Verse, 0, to-from+1)
 	for i := from; i <= to; i++ {
 		if verse := chap.GetVerse(i); verse != nil {
-			verses[i-from] = verse
+			verses = append(verses, verse)
 		}
 	}
 	return verses
