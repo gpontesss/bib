@@ -35,30 +35,30 @@ func (rp *RefPrinter) SetVersion(vsr *bib.Version) { rp.vsr = vsr }
 func (rp *RefPrinter) Print(mp MovePrinter) int {
 	// height/width ration ~ 2
 	vertpadding := (rp.padding / 2)
+	width := rp.width - (2 * rp.padding)
+
 	mp.MovePrint(vertpadding, rp.padding, rp.vsr.Name, " ", rp.ref) // header
 
 	linei := vertpadding + 1
 	for _, verse := range rp.ref.Verses(rp.vsr) {
 		text := verse.String()
-		textlen := len(text)
 
-		width := rp.width - (2 * rp.padding)
-		// A more secure way of doing ceiling division with integers.
-		linecount := textlen / width
-		if (textlen % width) != 0 {
-			linecount++
-		}
+		linelen := 0
+		wordsiter := NewWordIter(text)
 
-		for i := 0; i < linecount; i++ {
-			linei++
-			// TODO: padding?
-			lowi := i * width
-			highi := (i + 1) * width
-			if highi > textlen {
-				highi = textlen
+		for wordsiter.Next() {
+			// TODO: what if words are bigger than the max line length?
+			word := wordsiter.Value()
+
+			if linelen+len(word) > width {
+				linelen = 0
+				linei++
 			}
-			mp.MovePrint(linei, rp.padding, text[lowi:highi])
+			mp.MovePrint(linei, rp.padding+linelen, word, " ")
+			// +1 accounts for space
+			linelen += len(word) + 1
 		}
+		linei++
 	}
 
 	return linei

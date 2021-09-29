@@ -28,7 +28,8 @@ func (iter *WordIter) Next() bool {
 	iter.highi = iter.lowi
 	for iter.highi < len(iter.str) &&
 		(unicode.IsLetter(rune(iter.str[iter.highi])) ||
-			unicode.IsPunct(rune(iter.str[iter.highi]))) {
+			unicode.IsPunct(rune(iter.str[iter.highi])) ||
+			unicode.IsNumber(rune(iter.str[iter.highi]))) {
 		iter.highi++
 	}
 
