@@ -1,8 +1,8 @@
 package ui
 
 import (
+	gc "github.com/gbin/goncurses"
 	"github.com/gpontesss/bib/bib"
-	gc "github.com/rthornton128/goncurses"
 )
 
 // UI docs here.
