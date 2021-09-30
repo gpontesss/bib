@@ -1,11 +1,29 @@
 package bib
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+	"strconv"
+)
+
+var refre = regexp.MustCompile("^(\\w+)\\s+(\\d+):(\\d+)$")
 
 // ParseRef docs here.
-// TODO
+// TODO: parse partial references that only contains book/chapter, etc., and
+// ranges.
 func ParseRef(str string) (Ref, error) {
-	return Ref{}, nil
+	matches := refre.FindAllStringSubmatch(str, -1)[0]
+	if len(matches) != 3 {
+		return Ref{}, fmt.Errorf("Invalid reference '%s'", str)
+	}
+	bookname := matches[1]
+	chapnum, _ := strconv.Atoi(matches[2])
+	versenum, _ := strconv.Atoi(matches[3])
+	return Ref{
+		BookName:   bookname,
+		ChapterNum: chapnum,
+		VerseNum:   versenum,
+	}, nil
 }
 
 // Ref docs here.

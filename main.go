@@ -32,7 +32,12 @@ func main() {
 	if err := ui.Init(); err != nil {
 		log.Fatal("ui.Init", err)
 	}
-	defer ui.End()
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("Panic: %v", err)
+		}
+		ui.End()
+	}()
 
 	cancelchan := make(chan os.Signal, 1)
 	signal.Notify(cancelchan, syscall.SIGTERM, syscall.SIGINT)
@@ -42,6 +47,7 @@ func main() {
 		ui.Loop()
 		loopend <- struct{}{}
 	}()
+
 	select {
 	case <-loopend:
 		log.Print("Exiting application...")

@@ -7,38 +7,32 @@ import (
 
 // NewVersionPad docs here.
 func NewVersionPad(vsr *bib.Version, height, width, y, x, padding int) (VersionPad, error) {
-	// height/width ration ~ 2
-	horpadding, vertpadding := padding, (padding / 2)
-
-	// initially pad height is 0, and resized according to reference writting to
-	// it.
-	pad, err := gc.NewPad(1, width-(2*horpadding))
+	mainwin, err := gc.NewWindow(1, 1, 0, 0)
 	if err != nil {
 		return VersionPad{}, err
 	}
-	header, err := gc.NewWindow(
-		1, width-(horpadding*2),
-		y+vertpadding, x+horpadding)
+	pad, err := gc.NewPad(1, 1)
 	if err != nil {
 		return VersionPad{}, err
 	}
+	header := mainwin.Sub(0, 0, 0, 0)
 
 	vsrp := VersionPad{
-		header: header,
-		pad:    pad,
-		vsr:    vsr,
-		height: height, width: width,
-		horpadding: horpadding, vertpadding: vertpadding,
-		offset: 0, maxoffset: 0,
+		mainwin: mainwin,
+		header:  header,
+		pad:     pad,
+		vsr:     vsr,
+		height:  height, width: width,
 		x: x, y: y,
-		cursorx: 0, cursory: 0,
-		refloaded: bib.Ref{},
 	}
+
+	vsrp.Resize(height, width, y, x, padding)
 	return vsrp, nil
 }
 
 // VersionPad docs here.
 type VersionPad struct {
+	mainwin                 *gc.Window
 	header                  *gc.Window
 	pad                     *gc.Pad
 	vsr                     *bib.Version
@@ -99,6 +93,7 @@ func (vsrp *VersionPad) Scroll(offset int) {
 
 // NoutRefresh docs here.
 func (vsrp *VersionPad) NoutRefresh() {
+	vsrp.mainwin.NoutRefresh()
 	vsrp.header.NoutRefresh()
 	vsrp.pad.NoutRefresh(
 		// there won't be horizontal offsets for now.
@@ -111,6 +106,7 @@ func (vsrp *VersionPad) NoutRefresh() {
 
 // Refresh docs here.
 func (vsrp *VersionPad) Refresh() {
+	vsrp.mainwin.Refresh()
 	vsrp.header.Refresh()
 	vsrp.pad.Refresh(
 		// there won't be horizontal offsets for now.
@@ -121,11 +117,34 @@ func (vsrp *VersionPad) Refresh() {
 		vsrp.y+vsrp.height-vsrp.vertpadding-1, vsrp.x+vsrp.width-vsrp.horpadding)
 }
 
+func (vsrp *VersionPad) Resize(height, width, y, x, padding int) {
+	// height/width ration ~ 2
+	vsrp.horpadding, vsrp.vertpadding = padding, (padding / 2)
+	vsrp.x, vsrp.y = x, y
+	vsrp.height, vsrp.width = height, width
+
+	vsrp.mainwin.MoveWindow(vsrp.y, vsrp.x)
+	vsrp.mainwin.Resize(vsrp.height, vsrp.width)
+
+	vsrp.header.Resize(1, vsrp.width-(vsrp.horpadding*2))
+	vsrp.header.MoveWindow(vsrp.y+vsrp.vertpadding, vsrp.x+vsrp.horpadding)
+
+	// Forces pad refresh, while reloading text with new dimensions.
+	if ref := vsrp.RefLoaded(); ref != nil {
+		vsrp.LoadRef(vsrp.RefLoaded())
+	}
+}
+
 // GetChar docs here.
 func (vsrp *VersionPad) GetChar() gc.Key { return vsrp.pad.GetChar() }
 
 // Delete docs here.
-func (vsrp *VersionPad) Delete() { vsrp.pad.Delete() }
+func (vsrp *VersionPad) Delete() {
+	// TODO: include other components too.
+	if vsrp.pad != nil {
+		vsrp.pad.Delete()
+	}
+}
 
 // RefLoaded docs here.
 func (vsrp *VersionPad) RefLoaded() *bib.Ref { return &vsrp.refloaded }
@@ -140,10 +159,13 @@ func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	// +height avoids text shadows at end when scrolling near end of text.
 	vsrp.pad.Resize(vsrp.maxoffset+vsrp.height, vsrp.width-(2*vsrp.horpadding))
 
-	vsrp.header.Erase()
+	vsrp.mainwin.Erase()
+	vsrp.mainwin.NoutRefresh()
+
 	vsrp.header.SetBackground(gc.ColorPair(2))
 	vsrp.header.AttrOn(gc.ColorPair(2) | gc.A_BOLD)
 	vsrp.header.MovePrint(0, 0, vsrp.vsr.Name, " ", &vsrp.refloaded) // header
+	vsrp.header.AttrOff(gc.ColorPair(2) | gc.A_BOLD)
 
 	refp.Print(vsrp.pad)
 
