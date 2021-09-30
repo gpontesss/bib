@@ -140,14 +140,15 @@ func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	// +height avoids text shadows at end when scrolling near end of text.
 	vsrp.pad.Resize(vsrp.maxoffset+vsrp.height, vsrp.width-(2*vsrp.horpadding))
 
-	vsrp.offset = 0
-	vsrp.GotoCursor(vsrp.miny(), vsrp.minx())
-
 	vsrp.header.Erase()
 	vsrp.header.SetBackground(gc.ColorPair(2))
 	vsrp.header.AttrOn(gc.ColorPair(2) | gc.A_BOLD)
 	vsrp.header.MovePrint(0, 0, vsrp.vsr.Name, " ", &vsrp.refloaded) // header
 
 	refp.Print(vsrp.pad)
+
+	vsrp.offset = 0
+	vsrp.GotoCursor(vsrp.miny(), vsrp.minx())
+
 	vsrp.NoutRefresh()
 }
