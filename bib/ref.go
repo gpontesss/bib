@@ -4,34 +4,117 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
+	"unicode"
 )
 
-var refre = regexp.MustCompile("^(\\w+)\\s+(\\d+):(\\d+)$")
+type refType int
 
-// ParseRef docs here.
-// TODO: parse partial references that only contains book/chapter, etc., and
-// ranges.
-func ParseRef(str string) (Ref, error) {
-	matches := refre.FindAllStringSubmatch(str, -1)[0]
-	if len(matches) != 3 {
-		return Ref{}, fmt.Errorf("Invalid reference '%s'", str)
-	}
-	bookname := matches[1]
-	chapnum, _ := strconv.Atoi(matches[2])
-	versenum, _ := strconv.Atoi(matches[3])
-	return Ref{
-		BookName:   bookname,
-		ChapterNum: chapnum,
-		VerseNum:   versenum,
-	}, nil
+const (
+	// Signs that it is a book reference.
+	BookRef refType = iota
+	// Signs that it is a chapter reference.
+	ChapterRef
+	// Signs that the reference contains a single verse.
+	SingleVerseRef
+	// Signs that the reference contains a verse range.
+	RangeVerseRef
+	// Signs that the reference contains a list of verses.
+	ListVerseRef
+)
+
+// Ref represents a generic reference of a verse, or a collection of verses,
+// that can be indepently built and applied to versions.
+type Ref struct {
+	// Type indicates how the reference should be interpreted. See RefType and
+	// constants of this type.
+	Type refType
+	// BookName references the book name. Relevant to all types, for it must
+	// always be present.
+	BookName string
+	// ChapterNum references the chapter number. Relevant for type ChapterRef,
+	// SingleVerseRef, RangeVerseRef and ListVerseRef.
+	ChapterNum int
+	// VerseNum references the lower index when the type is RangeVerseRef, or
+	// the verse number when the type is SingleVerseRef.
+	VerseNum int
+	// EndVerseNum references the higher index when the type is RangeVerseRef.
+	EndVerseNum int
+	// VerseNums  references unrelated verse numbers when the type is
+	// ListVerseRef.
+	VerseNums []int
 }
 
-// Ref docs here.
-type Ref struct {
-	BookName   string
-	ChapterNum int
-	VerseNum   int
-	Offset     int
+// Reference regular expression.
+// It considers all possible cases of a reference, and allow spaces between
+// parts where it is reasonable.
+// TODO: allow unicode matching.
+var refre = regexp.MustCompile(
+	"^\\s*(\\d?\\s*[\\w]+\\.?)\\s*((\\d+)(:((\\d+)((-)(\\d+)|((,)\\s*\\d+)+)?))?\\s*)?$")
+
+// ParseRef docs here.
+// In the future, would be nice to do it with zero allocations.
+func ParseRef(str string) (Ref, error) {
+	result := refre.FindAllStringSubmatch(str, -1)
+	if len(result) != 1 {
+		return Ref{}, fmt.Errorf("%q is an invalid reference\n", str)
+	}
+	// since it matches the edges (^...$), it ever only produces one result
+	// match set.
+	matches := result[0]
+
+	// Book name should always be matched.
+	ref := Ref{BookName: matches[1], Type: BookRef}
+
+	// Chapter number is included
+	if chapternum := matches[3]; chapternum != "" {
+		// regex ensures that number is valid.
+		ref.ChapterNum, _ = strconv.Atoi(matches[3])
+		ref.Type = ChapterRef
+	}
+
+	// Verse range reference.
+	if matches[8] == "-" {
+		// regex ensures that number is valid.
+		lowi, _ := strconv.Atoi(matches[6])
+		highi, _ := strconv.Atoi(matches[9])
+
+		if lowi >= highi {
+			return Ref{}, fmt.Errorf(
+				"Invalid range: higher index (%d) must be higher than lower (%d)\n",
+				highi, lowi)
+		}
+		ref.VerseNum = lowi
+		ref.EndVerseNum = highi
+		ref.Type = RangeVerseRef
+
+		// Verse list reference.
+	} else if matches[11] == "," {
+		numstrs := strings.Split(
+			strings.Map(func(r rune) rune {
+				if unicode.IsSpace(r) {
+					return -1
+				}
+				return r
+			}, matches[5]),
+			",")
+
+		versenums := make([]int, len(numstrs))
+		for i := 0; i < len(versenums); i++ {
+			// regex ensures that number is valid.
+			versenums[i], _ = strconv.Atoi(numstrs[i])
+		}
+		ref.VerseNums = versenums
+		ref.Type = ListVerseRef
+
+		// Only verse number is included.
+	} else if versenumstr := matches[5]; versenumstr != "" {
+		// regex ensures that number is valid.
+		ref.VerseNum, _ = strconv.Atoi(matches[5])
+		ref.Type = SingleVerseRef
+	}
+
+	return ref, nil
 }
 
 // TODO: deal with the nil pointers
@@ -43,30 +126,29 @@ func (ref *Ref) Chapter(vsr *Version) *Chapter {
 	return vsr.GetBook(ref.BookName).GetChapter(ref.ChapterNum)
 }
 
-// NormOffset docs here.
-func (ref *Ref) NormOffset(vsr *Version) {
-	chap := ref.Chapter(vsr)
-	if chap == nil {
-		return
-	}
-	lastversenum := chap.LastVerse().Number
-	if maxoffset := lastversenum - ref.VerseNum; ref.Offset > maxoffset {
-		ref.Offset = maxoffset
-	}
-}
-
 // String implements the fmt.Stringer interface.
 func (ref *Ref) String() string {
-	if ref.ChapterNum == 0 {
+	switch ref.Type {
+	case BookRef:
 		return ref.BookName
-	} else if ref.VerseNum == 0 {
+	case ChapterRef:
 		return fmt.Sprintf("%s %d", ref.BookName, ref.ChapterNum)
-	} else if ref.Offset <= 0 {
-		return fmt.Sprintf("%s %d:%d",
-			ref.BookName, ref.ChapterNum, ref.VerseNum)
-	} else {
+	case SingleVerseRef:
+		return fmt.Sprintf("%s %d:%d", ref.BookName, ref.ChapterNum, ref.VerseNum)
+	case ListVerseRef:
+		// damn you, golang, and your lack of generics to allow mapping and
+		// other sane things.
+		versenums := make([]string, len(ref.VerseNums))
+		for i := range versenums {
+			versenums[i] = strconv.Itoa(ref.VerseNums[i])
+		}
+		return fmt.Sprintf("%s %d:%s",
+			ref.BookName, ref.ChapterNum, strings.Join(versenums, ", "))
+	case RangeVerseRef:
 		return fmt.Sprintf("%s %d:%d-%d",
-			ref.BookName, ref.ChapterNum, ref.VerseNum, ref.VerseNum+ref.Offset)
+			ref.BookName, ref.ChapterNum, ref.VerseNum, ref.EndVerseNum)
+	default:
+		panic("Can't stringify ref type")
 	}
 }
 
@@ -83,11 +165,17 @@ func (ref *Ref) Verses(vsr *Version) []*Verse {
 		return book.Verses()
 	}
 
-	if ref.VerseNum <= 0 {
+	if ref.VerseNums == nil {
 		// it means all verses in the chapter.
 		return chap.VerseRange(1, chap.LastVerse().Number)
 	}
 
-	ref.NormOffset(vsr)
-	return chap.VerseRange(ref.VerseNum, ref.VerseNum+ref.Offset)
+	// TODO: refactor
+	verses := make([]*Verse, 0, len(ref.VerseNums))
+	for _, versenum := range ref.VerseNums {
+		if verse := chap.GetVerse(versenum); verse != nil {
+			verses = append(verses, verse)
+		}
+	}
+	return verses
 }

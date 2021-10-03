@@ -43,7 +43,7 @@ func (ui *UI) Init() (err error) {
 	gc.InitPair(2, gc.C_WHITE, gc.C_BLUE) // Header
 
 	ui.height, ui.width = ui.stdscr.MaxYX()
-	ui.padding = 4
+	ui.padding = 1
 
 	padheight := ui.height
 	padwidth := ui.width / len(ui.Versions)
@@ -231,12 +231,15 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 }
 
 // Loop docs here.
-func (ui *UI) Loop() {
+func (ui *UI) Loop() error {
 	// Initially loads reference.
-	ref := bib.Ref{BookName: "John", ChapterNum: 1}
-	for i := range ui.pads {
-		pad := &ui.pads[i]
-		pad.LoadRef(&ref)
+	if ref, err := bib.ParseRef("John 1"); err != nil {
+		return err
+	} else {
+		for i := range ui.pads {
+			pad := &ui.pads[i]
+			pad.LoadRef(&ref)
+		}
 	}
 
 	// Initializes cursor in right position
@@ -254,8 +257,15 @@ func (ui *UI) Loop() {
 			ui.Resize(height, width)
 		case key := <-ui.keychan:
 			if ui.HandleKey(key) {
-				return
+				return nil
 			}
 		}
 	}
+}
+
+// AsyncLoop docs here.
+func (ui *UI) AsyncLoop() <-chan error {
+	loopend := make(chan error)
+	go func() { loopend <- ui.Loop() }()
+	return loopend
 }

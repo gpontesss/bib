@@ -42,14 +42,8 @@ func main() {
 	cancelchan := make(chan os.Signal, 1)
 	signal.Notify(cancelchan, syscall.SIGTERM, syscall.SIGINT)
 
-	loopend := make(chan struct{})
-	go func() {
-		ui.Loop()
-		loopend <- struct{}{}
-	}()
-
 	select {
-	case <-loopend:
+	case <-ui.AsyncLoop():
 		log.Print("Exiting application...")
 	case sig := <-cancelchan:
 		log.Printf("Caught signal: %v", sig)

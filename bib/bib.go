@@ -35,6 +35,7 @@ type Book struct {
 func (bk *Book) Ref() Ref {
 	return Ref{
 		BookName: bk.Name,
+		Type:     BookRef,
 	}
 }
 
@@ -124,6 +125,7 @@ func (chap *Chapter) Ref() Ref {
 	return Ref{
 		BookName:   chap.Book.Name,
 		ChapterNum: chap.Number,
+		Type:       ChapterRef,
 	}
 }
 
@@ -213,5 +215,6 @@ func (vrs *Verse) Ref() Ref {
 		BookName:   vrs.Chapter.Book.Name,
 		ChapterNum: vrs.Chapter.Number,
 		VerseNum:   vrs.Number,
+		Type:       SingleVerseRef,
 	}
 }
