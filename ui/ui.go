@@ -52,8 +52,7 @@ func (ui *UI) Init() (err error) {
 	for i, vsr := range ui.Versions {
 		if ui.pads[i], err = NewVersionPad(
 			vsr,
-			padheight, padwidth,
-			0, i*padwidth,
+			Box{XY{i * padwidth, 0}, padheight, padwidth},
 			ui.padding,
 		); err != nil {
 			return err
@@ -141,8 +140,7 @@ func (ui *UI) Resize(height, width int) {
 	for i := range ui.pads {
 		pad := &ui.pads[i]
 		pad.Resize(
-			padheight, padwidth,
-			0, i*padwidth,
+			Box{XY{i * padwidth, 0}, padheight, padwidth},
 			ui.padding)
 	}
 }
@@ -167,9 +165,9 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 	case 'G': // Goes to bottom of text.
 		curpad.GotoCursor(curpad.maxy(), curpad.minx())
 	case '_':
-		curpad.GotoCursor(curpad.cursory, curpad.minx())
+		curpad.GotoCursor(curpad.cursor.Y, curpad.minx())
 	case '$':
-		curpad.GotoCursor(curpad.cursory, curpad.maxx())
+		curpad.GotoCursor(curpad.cursor.Y, curpad.maxx())
 	case '(':
 		ui.IncrPadding(-1)
 	case ')':
@@ -187,9 +185,9 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 	case 'l': // Moves cursor right.
 		curpad.MoveCursor(0, 1)
 	case 'u': // Moves cursor half-page up.
-		curpad.Scroll(-curpad.height / 2)
+		curpad.Scroll(-curpad.box.height / 2)
 	case 'd': // Moves cursor half-page down.
-		curpad.Scroll(curpad.height / 2)
+		curpad.Scroll(curpad.box.height / 2)
 	case 'n': // Advances chapter.
 		if next := curpad.RefLoaded().Chapter(curpad.vsr).Next(); next != nil {
 			ref := next.Ref()
@@ -212,10 +210,10 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 		}
 	case 'L': // Changes pad focus to the one on the right.
 		ui.nextpad()
-		ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
+		ui.curpad().GotoCursor(ui.curpad().cursor.Y, ui.curpad().cursor.X)
 	case 'H': // Changes pad focus to the one on the left.
 		ui.prevpad()
-		ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
+		ui.curpad().GotoCursor(ui.curpad().cursor.Y, ui.curpad().cursor.X)
 	case gc.KEY_TAB:
 		if vsr, err := ui.vsrmenu.Select(); err == nil && vsr != nil {
 			curpad.SetVersion(vsr)
@@ -225,7 +223,7 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 		// always refreshes all for removing menu window "shadow".
 		ui.Refresh(true)
 		// and moves cursor to where it should be, in the active pad.
-		ui.curpad().GotoCursor(ui.curpad().cursory, ui.curpad().cursorx)
+		ui.curpad().GotoCursor(ui.curpad().cursor.Y, ui.curpad().cursor.X)
 	}
 	return false
 }
