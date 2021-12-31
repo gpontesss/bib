@@ -50,7 +50,7 @@ type Ref struct {
 // parts where it is reasonable.
 // TODO: allow unicode matching.
 var refre = regexp.MustCompile(
-	"^\\s*(\\d?\\s*[\\w]+\\.?)\\s*((\\d+)(:((\\d+)((-)(\\d+)|((,)\\s*\\d+)+)?))?\\s*)?$")
+	`^\s*(\d?\s*[\w]+\.?)\s*((\d+)(:((\d+)((-)(\d+)|((,)\s*\d+)+)?))?\s*)?$`)
 
 // ParseRef docs here.
 // In the future, would be nice to do it with zero allocations.
@@ -81,7 +81,7 @@ func ParseRef(str string) (Ref, error) {
 
 		if lowi >= highi {
 			return Ref{}, fmt.Errorf(
-				"Invalid range: higher index (%d) must be higher than lower (%d)\n",
+				"Invalid range: first index (%d) must be higher than last (%d)\n",
 				highi, lowi)
 		}
 		ref.VerseNum = lowi

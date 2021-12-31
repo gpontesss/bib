@@ -19,7 +19,7 @@ func TestParseRef(t *testing.T) {
 		{"1 Cor. 6:9-11", Ref{BookName: "1 Cor.", ChapterNum: 6, VerseNum: 9, EndVerseNum: 11, Type: RangeVerseRef}, ""},
 		{"Apo. 21:3, 4", Ref{BookName: "Apo.", ChapterNum: 21, VerseNums: []int{3, 4}, Type: ListVerseRef}, ""},
 		{"John 1:a", Ref{}, "invalid reference"},
-		{"John 1:2-1", Ref{}, "higher index (1) must be higher than lower (2)"},
+		{"John 1:2-1", Ref{}, "first index (1) must be higher than last (2)"},
 	}
 
 	for _, c := range cases {
