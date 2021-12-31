@@ -43,8 +43,10 @@ func main() {
 	signal.Notify(cancelchan, syscall.SIGTERM, syscall.SIGINT)
 
 	select {
-	case <-ui.AsyncLoop():
-		log.Print("Exiting application...")
+	case err := <-ui.AsyncLoop():
+		if err != nil {
+			log.Printf("Exited with error: %v", err)
+		}
 	case sig := <-cancelchan:
 		log.Printf("Caught signal: %v", sig)
 	}
