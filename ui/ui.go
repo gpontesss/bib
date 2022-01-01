@@ -13,15 +13,15 @@ import (
 
 // UI docs here.
 type UI struct {
-	Versions      []*bib.Version
-	vsrmenu       VersionMenu
-	stdscr        *gc.Window
-	pads          []VersionPad
-	curpadi       int
-	padding       int
-	height, width int
-	winchchan     chan os.Signal
-	keychan       chan gc.Key
+	Versions  []*bib.Version
+	vsrmenu   VersionMenu
+	stdscr    *gc.Window
+	pads      []VersionPad
+	curpadi   int
+	padding   int
+	box       Box
+	winchchan chan os.Signal
+	keychan   chan gc.Key
 }
 
 // Init docs here.
@@ -42,29 +42,34 @@ func (ui *UI) Init() (err error) {
 	gc.InitPair(1, gc.C_WHITE, 0)         // Verse highlighting
 	gc.InitPair(2, gc.C_WHITE, gc.C_BLUE) // Header
 
-	ui.height, ui.width = ui.stdscr.MaxYX()
+	ui.box = Box{XY{0, 0}, 0, 0}
+
+	maxheight, maxwidth := ui.stdscr.MaxYX()
+	// cast is safe for term size can never be negative.
+	ui.box.height, ui.box.width = uint(maxheight), uint(maxwidth)
+
 	ui.padding = 1
 
-	padheight := ui.height
-	padwidth := ui.width / len(ui.Versions)
-
 	ui.pads = make([]VersionPad, len(ui.Versions))
-	for i, vsr := range ui.Versions {
+	boxiter := ui.box.VertDiv(uint(len(ui.pads)))
+	for boxiter.Next() {
+		i := boxiter.Index()
+		vsr := ui.Versions[i]
 		if ui.pads[i], err = NewVersionPad(
 			vsr,
-			Box{XY{i * padwidth, 0}, padheight, padwidth},
-			ui.padding,
-		); err != nil {
+			boxiter.Value(),
+			ui.padding); err != nil {
 			return err
 		}
+		i++
 	}
 	// by default, first pad is selected.
 	ui.curpadi = 0
 
 	// TODO: resize it too.
 	if ui.vsrmenu, err = NewVersionMenu(
-		ui.height/4, ui.width/4,
-		ui.height/2, ui.width/2,
+		int(ui.box.height/4), int(ui.box.width/4),
+		int(ui.box.height/2), int(ui.box.width/2),
 		ui.Versions...,
 	); err != nil {
 		return err
@@ -123,24 +128,24 @@ func (ui *UI) Refresh(all bool) {
 }
 
 // Resize docs here.
-func (ui *UI) Resize(height, width int) {
-	ui.height, ui.width = height, width
+func (ui *UI) Resize(height, width uint) {
+	ui.box = ui.box.Resize(height, width)
 
-	gc.ResizeTerm(ui.height, ui.width)
-	ui.stdscr.Resize(ui.height, ui.width)
+	gc.ResizeTerm(int(ui.box.height), int(ui.box.width))
+	ui.stdscr.Resize(int(ui.box.height), int(ui.box.width))
 
 	// Gets rid of previously painted columns that were part of pads, but no
 	// longer are.
 	ui.stdscr.Erase()
 	ui.stdscr.NoutRefresh()
 
-	padheight := ui.height
-	padwidth := ui.width / len(ui.Versions)
+	padheight := ui.box.height
+	padwidth := ui.box.width / uint(len(ui.Versions))
 
 	for i := range ui.pads {
 		pad := &ui.pads[i]
 		pad.Resize(
-			Box{XY{i * padwidth, 0}, padheight, padwidth},
+			Box{XY{uint(i) * padwidth, 0}, padheight, padwidth},
 			ui.padding)
 	}
 }
@@ -151,7 +156,7 @@ func (ui *UI) IncrPadding(amount int) {
 	if ui.padding < 0 {
 		ui.padding = 0
 	}
-	ui.Resize(ui.height, ui.width)
+	ui.Resize(ui.box.height, ui.box.width)
 }
 
 // HandleKey docs here.
@@ -185,9 +190,9 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 	case 'l': // Moves cursor right.
 		curpad.MoveCursor(0, 1)
 	case 'u': // Moves cursor half-page up.
-		curpad.Scroll(-curpad.box.height / 2)
+		curpad.Scroll(-int(curpad.box.height) / 2)
 	case 'd': // Moves cursor half-page down.
-		curpad.Scroll(curpad.box.height / 2)
+		curpad.Scroll(int(curpad.box.height) / 2)
 	case 'n': // Advances chapter.
 		if next := curpad.RefLoaded().Chapter(curpad.vsr).Next(); next != nil {
 			ref := next.Ref()
@@ -242,7 +247,7 @@ func (ui *UI) Loop() error {
 
 	// Initializes cursor in right position
 	curpad := ui.curpad()
-	curpad.MoveCursor(curpad.miny(), curpad.minx())
+	curpad.MoveCursor(int(curpad.miny()), int(curpad.minx()))
 
 	for {
 		ui.Refresh(false)
@@ -252,7 +257,8 @@ func (ui *UI) Loop() error {
 			if err != nil {
 				panic(err)
 			}
-			ui.Resize(height, width)
+			// safe cast for terminal dimensions cannot be negative
+			ui.Resize(uint(height), uint(width))
 		case key := <-ui.keychan:
 			if ui.HandleKey(key) {
 				return nil
