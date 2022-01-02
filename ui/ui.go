@@ -50,7 +50,7 @@ func (ui *UI) Init() (err error) {
 	maxheight, maxwidth := ui.stdscr.MaxYX()
 	// cast is safe for term size can never be negative.
 	ui.box = ui.box.Resize(uint(maxheight), uint(maxwidth))
-	ui.padding = 0
+	ui.padding = 1
 
 	ui.pads = make([]VersionPad, len(ui.Versions))
 

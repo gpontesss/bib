@@ -64,15 +64,16 @@ func (vsrp *VersionPad) SetVersion(vsr *bib.Version) { vsrp.vsr = vsr }
 
 // MoveCursor docs here.
 func (vsrp *VersionPad) MoveCursor(yoffset, xoffset int) {
+	vsrp.pad.Scroll(0, yoffset)
 }
 
 // GotoCursor docs here.
 func (vsrp *VersionPad) GotoCursor(y, x uint) {
+	vsrp.pad.Move(int(y), int(x))
 }
 
 // Scroll docs here.
-func (vsrp *VersionPad) Scroll(offset int) {
-}
+func (vsrp *VersionPad) Scroll(offset int) { vsrp.pad.Scroll(0, offset) }
 
 // NoutRefresh docs here.
 func (vsrp *VersionPad) NoutRefresh() {
@@ -109,7 +110,8 @@ func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	vsrp.maxoffset = refp.LinesRequired()
 	vsrp.pad.ResizeBuffer(
 		// +height avoids text shadows at end when scrolling near end of text.
-		vsrp.maxoffset+vsrp.display.height,
+		// vsrp.maxoffset+vsrp.display.height,
+		vsrp.maxoffset,
 		vsrp.display.width)
 
 	vsrp.WinBox.Erase()

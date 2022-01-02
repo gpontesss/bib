@@ -52,13 +52,14 @@ func (wb *WinBox) ResizeBox(box Box) {
 type PadBox struct {
 	Box
 	*gc.Pad
-	offset XY
+	offset              XY
+	bufheight, bufwidth uint
 }
 
 // NewPadBox docs here.
-func NewPadBox(box Box, height, width int) (PadBox, error) {
-	pad, err := gc.NewPad(height, width)
-	return PadBox{box, pad, XY{0, 0}}, err
+func NewPadBox(box Box, height, width uint) (PadBox, error) {
+	pad, err := gc.NewPad(int(height), int(width))
+	return PadBox{box, pad, XY{0, 0}, height, width}, err
 }
 
 // Resize docs here.
@@ -66,7 +67,9 @@ func (pb *PadBox) Resize(box Box) { pb.Box = box }
 
 // ResizeBuffer docs here.
 func (pb *PadBox) ResizeBuffer(height, width uint) {
-	pb.Pad.Resize(int(height), int(width))
+	// temporary fix to avoid text being shadowed near end of scroll.
+	pb.Pad.Resize(int(height+pb.height), int(width+pb.width))
+	pb.bufheight, pb.bufwidth = height, width
 }
 
 // Refresh docs here.
@@ -89,3 +92,17 @@ func (pb *PadBox) NoutRefresh() {
 
 // Offset docs here.
 func (pb *PadBox) Offset(offset XY) { pb.offset = offset }
+
+// Scroll docs here.
+func (pb *PadBox) Scroll(x, y int) {
+	pb.offset = pb.offset.Move(x, y)
+
+	// -1 so last line appears when pad is completely scrolled right.
+	if pb.offset.X > pb.bufwidth-1 {
+		pb.offset.X = pb.bufwidth - 1
+	}
+	// -1 so last line appears when pad is completely scrolled down.
+	if pb.offset.Y > pb.bufheight-1 {
+		pb.offset.Y = pb.bufheight - 1
+	}
+}
