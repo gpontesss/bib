@@ -13,15 +13,17 @@ import (
 
 // UI docs here.
 type UI struct {
-	Versions  []*bib.Version
+	Versions []*bib.Version
+	// TODO: can't it be ephemeral?
 	vsrmenu   VersionMenu
 	stdscr    *gc.Window
-	pads      []VersionPad
-	curpadi   int
-	padding   int
+	padding   uint
 	box       Box
 	winchchan chan os.Signal
 	keychan   chan gc.Key
+	// by default, first pad is selected. (unitiated)
+	curpadi int
+	pads    []VersionPad
 }
 
 // Init docs here.
@@ -42,29 +44,25 @@ func (ui *UI) Init() (err error) {
 	gc.InitPair(1, gc.C_WHITE, 0)         // Verse highlighting
 	gc.InitPair(2, gc.C_WHITE, gc.C_BLUE) // Header
 
+	// root UI is anchored at (0,0)
 	ui.box = Box{XY{0, 0}, 0, 0}
 
 	maxheight, maxwidth := ui.stdscr.MaxYX()
 	// cast is safe for term size can never be negative.
-	ui.box.height, ui.box.width = uint(maxheight), uint(maxwidth)
-
-	ui.padding = 1
+	ui.box = ui.box.Resize(uint(maxheight), uint(maxwidth))
+	ui.padding = 0
 
 	ui.pads = make([]VersionPad, len(ui.Versions))
+
 	boxiter := ui.box.VertDiv(uint(len(ui.pads)))
 	for boxiter.Next() {
 		i := boxiter.Index()
-		vsr := ui.Versions[i]
-		if ui.pads[i], err = NewVersionPad(
-			vsr,
-			boxiter.Value(),
-			ui.padding); err != nil {
+		ui.pads[i], err = NewVersionPad(
+			ui.Versions[i], boxiter.Value(), ui.padding)
+		if err != nil {
 			return err
 		}
-		i++
 	}
-	// by default, first pad is selected.
-	ui.curpadi = 0
 
 	// TODO: resize it too.
 	if ui.vsrmenu, err = NewVersionMenu(
@@ -88,28 +86,15 @@ func (ui *UI) Init() (err error) {
 	return nil
 }
 
-func (ui *UI) nextpad() {
-	ui.curpadi++
-	if ui.curpadi >= len(ui.pads) {
-		ui.curpadi = 0
-	}
-}
-
-func (ui *UI) prevpad() {
-	ui.curpadi--
-	if ui.curpadi < 0 {
-		ui.curpadi = len(ui.pads) - 1
-	}
-}
-
+func (ui *UI) nextpad()            { ui.curpadi = (ui.curpadi + 1) % len(ui.pads) }
+func (ui *UI) prevpad()            { ui.curpadi = (ui.curpadi - 1) % len(ui.pads) }
 func (ui *UI) curpad() *VersionPad { return &ui.pads[ui.curpadi] }
 
 // End docs here.
 func (ui *UI) End() {
 	// TODO: include version menu.
 	for padi := range ui.pads {
-		pad := &ui.pads[padi]
-		pad.Delete()
+		(&ui.pads[padi]).Delete()
 	}
 	gc.End()
 }
@@ -118,8 +103,7 @@ func (ui *UI) End() {
 func (ui *UI) Refresh(all bool) {
 	if all {
 		for i := range ui.pads {
-			pad := &ui.pads[i]
-			pad.NoutRefresh()
+			(&ui.pads[i]).NoutRefresh()
 		}
 	} else {
 		ui.curpad().NoutRefresh()
@@ -139,23 +123,15 @@ func (ui *UI) Resize(height, width uint) {
 	ui.stdscr.Erase()
 	ui.stdscr.NoutRefresh()
 
-	padheight := ui.box.height
-	padwidth := ui.box.width / uint(len(ui.Versions))
-
-	for i := range ui.pads {
-		pad := &ui.pads[i]
-		pad.Resize(
-			Box{XY{uint(i) * padwidth, 0}, padheight, padwidth},
-			ui.padding)
+	boxiter := ui.box.VertDiv(uint(len(ui.Versions)))
+	for boxiter.Next() {
+		ui.pads[boxiter.Index()].Resize(boxiter.Value(), ui.padding)
 	}
 }
 
-// IncrPadding
-func (ui *UI) IncrPadding(amount int) {
-	ui.padding += amount
-	if ui.padding < 0 {
-		ui.padding = 0
-	}
+// IncrPadding docs here.
+func (ui *UI) IncrPadding(padding int) {
+	ui.padding = uint(max(0, int(ui.padding)+padding))
 	ui.Resize(ui.box.height, ui.box.width)
 }
 
@@ -190,9 +166,9 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 	case 'l': // Moves cursor right.
 		curpad.MoveCursor(0, 1)
 	case 'u': // Moves cursor half-page up.
-		curpad.Scroll(-int(curpad.box.height) / 2)
+		curpad.Scroll(-int(curpad.height) / 2)
 	case 'd': // Moves cursor half-page down.
-		curpad.Scroll(int(curpad.box.height) / 2)
+		curpad.Scroll(int(curpad.height) / 2)
 	case 'n': // Advances chapter.
 		if next := curpad.RefLoaded().Chapter(curpad.vsr).Next(); next != nil {
 			ref := next.Ref()
@@ -240,8 +216,7 @@ func (ui *UI) Loop() error {
 		return err
 	} else {
 		for i := range ui.pads {
-			pad := &ui.pads[i]
-			pad.LoadRef(&ref)
+			(&ui.pads[i]).LoadRef(&ref)
 		}
 	}
 
@@ -260,6 +235,7 @@ func (ui *UI) Loop() error {
 			// safe cast for terminal dimensions cannot be negative
 			ui.Resize(uint(height), uint(width))
 		case key := <-ui.keychan:
+			// TODO: better exiting handler.
 			if ui.HandleKey(key) {
 				return nil
 			}

@@ -11,12 +11,12 @@ import (
 type RefPrinter struct {
 	ref   *bib.Ref
 	vsr   *bib.Version
-	width int
+	width uint
 	vrss  []*bib.Verse
 }
 
 // NewRefPrinter docs here.
-func NewRefPrinter(ref *bib.Ref, vsr *bib.Version, width int) RefPrinter {
+func NewRefPrinter(ref *bib.Ref, vsr *bib.Version, width uint) RefPrinter {
 	return RefPrinter{
 		ref:   ref,
 		vsr:   vsr,
@@ -33,8 +33,8 @@ func (rp *RefPrinter) verses() []*bib.Verse {
 }
 
 // LinesRequired docs here.
-func (rp *RefPrinter) LinesRequired() int {
-	linei := 0
+func (rp *RefPrinter) LinesRequired() uint {
+	var linei uint = 0
 	for _, verse := range rp.verses() {
 		ref := verse.Ref()
 
@@ -49,7 +49,7 @@ func (rp *RefPrinter) LinesRequired() int {
 			word := wordsiter.Value()
 			wordlen := utf8.RuneCountInString(word)
 
-			if linelen+wordlen > rp.width {
+			if linelen+wordlen > int(rp.width) {
 				linelen = 0
 				linei++
 			}
@@ -62,14 +62,14 @@ func (rp *RefPrinter) LinesRequired() int {
 }
 
 // Print docs here.
-func (rp *RefPrinter) Print(pad *gc.Pad) int {
-	linei := 0
+func (rp *RefPrinter) Print(pad *PadBox) uint {
+	var linei uint = 0
 	for _, verse := range rp.ref.Verses(rp.vsr) {
 		ref := verse.Ref()
 		refstr := ref.String()
 
 		pad.AttrOn(gc.ColorPair(1) | gc.A_BOLD)
-		pad.MovePrint(linei, 0, refstr)
+		pad.MovePrint(int(linei), 0, refstr)
 		pad.AttrOff(gc.ColorPair(1) | gc.A_BOLD)
 
 		// RuneCountInString is used for compatibility with UTF-8 strings,
@@ -84,11 +84,11 @@ func (rp *RefPrinter) Print(pad *gc.Pad) int {
 			word := wordsiter.Value()
 			wordlen := utf8.RuneCountInString(word)
 
-			if linelen+wordlen > rp.width {
+			if linelen+wordlen > int(rp.width) {
 				linelen = 0
 				linei++
 			}
-			pad.MovePrint(linei, linelen, word)
+			pad.MovePrint(int(linei), linelen, word)
 			// +1 accounts for space
 			linelen += wordlen + 1
 		}

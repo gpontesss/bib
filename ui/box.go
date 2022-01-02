@@ -59,6 +59,11 @@ func (box *Box) SE() XY { return box.nw.Move(int(box.width), int(box.height)) }
 // Pad docs here.
 func (box Box) Pad(pad uint) Box { return box.VertPad(pad, pad).HorPad(pad, pad) }
 
+// Move docs here.
+func (box Box) Move(hor, vert int) Box {
+	return Box{box.nw.Move(hor, vert), box.height, box.width}
+}
+
 func (box Box) Resize(height, width uint) Box {
 	return Box{box.nw, height, width}
 }
@@ -79,6 +84,13 @@ func (box Box) HorPad(left, right uint) Box {
 		height: box.height,
 		width:  box.width - (left + right),
 	}
+}
+
+// BoxIter docs here.
+type BoxIter struct {
+	Next  func() bool
+	Value func() Box
+	Index func() int
 }
 
 // VertDiv docs here.
@@ -123,11 +135,4 @@ func (box Box) HorDiv(n uint) BoxIter {
 			}
 		},
 	}
-}
-
-// BoxIter docs here.
-type BoxIter struct {
-	Next  func() bool
-	Value func() Box
-	Index func() int
 }
