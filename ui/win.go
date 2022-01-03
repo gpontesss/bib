@@ -93,16 +93,37 @@ func (pb *PadBox) NoutRefresh() {
 // Offset docs here.
 func (pb *PadBox) Offset(offset XY) { pb.offset = offset }
 
-// Scroll docs here.
-func (pb *PadBox) Scroll(x, y int) {
-	pb.offset = pb.offset.Move(x, y)
-
+// BoundBuffer docs here.
+func (pb *PadBox) BoundBuffer(x, y int) XY {
 	// -1 so last line appears when pad is completely scrolled right.
-	if pb.offset.X > pb.bufwidth-1 {
-		pb.offset.X = pb.bufwidth - 1
+	if x > int(pb.bufwidth)-1 {
+		x = int(pb.bufwidth) - 1
+	} else if x < 0 {
+		x = 0
 	}
 	// -1 so last line appears when pad is completely scrolled down.
-	if pb.offset.Y > pb.bufheight-1 {
-		pb.offset.Y = pb.bufheight - 1
+	if y > int(pb.bufheight)-1 {
+		y = int(pb.bufheight) - 1
+	} else if y < 0 {
+		y = 0
 	}
+	return XY{x, y}
+}
+
+func (pb *PadBox) BoundBufferXY(xy XY) XY { return pb.BoundBuffer(xy.X, xy.Y) }
+
+// MoveCursorXY docs here.
+func (pb *PadBox) MoveCursorXY(xy XY) XY { return pb.MoveCursor(uint(xy.X), uint(xy.Y)) }
+
+// Scroll docs here.
+func (pb *PadBox) Scroll(x, y int) {
+	pb.offset = pb.BoundBufferXY(pb.offset.Move(x, y))
+}
+
+// MoveCursor docs here.
+func (pb *PadBox) MoveCursor(x, y uint) XY {
+	// TODO: fix offset accordingly.
+	xy := pb.BoundBuffer(int(x), int(y))
+	pb.Pad.Move(int(xy.Y), int(xy.X))
+	return xy
 }

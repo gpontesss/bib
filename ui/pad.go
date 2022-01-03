@@ -64,16 +64,27 @@ func (vsrp *VersionPad) SetVersion(vsr *bib.Version) { vsrp.vsr = vsr }
 
 // MoveCursor docs here.
 func (vsrp *VersionPad) MoveCursor(yoffset, xoffset int) {
-	vsrp.pad.Scroll(0, yoffset)
+	vsrp.cursor = vsrp.pad.MoveCursorXY(vsrp.cursor.Move(xoffset, yoffset))
+
+	// fixes offset if needed.
+	if ydiff := vsrp.cursor.Y - (int(vsrp.pad.height) + vsrp.pad.offset.Y); ydiff > 0 {
+		vsrp.pad.Scroll(0, ydiff)
+	} else if ydiff := vsrp.cursor.Y - vsrp.pad.offset.Y; ydiff < 0 {
+		vsrp.pad.Scroll(0, ydiff)
+	}
 }
 
 // GotoCursor docs here.
 func (vsrp *VersionPad) GotoCursor(y, x uint) {
-	vsrp.pad.Move(int(y), int(x))
+	offset := vsrp.cursor.RelTo(XY{int(x), int(y)})
+	vsrp.MoveCursor(offset.Y, offset.X)
 }
 
 // Scroll docs here.
-func (vsrp *VersionPad) Scroll(offset int) { vsrp.pad.Scroll(0, offset) }
+func (vsrp *VersionPad) Scroll(offset int) {
+	vsrp.pad.Scroll(0, offset)
+	vsrp.cursor = vsrp.pad.MoveCursorXY(vsrp.cursor.Move(0, offset))
+}
 
 // NoutRefresh docs here.
 func (vsrp *VersionPad) NoutRefresh() {

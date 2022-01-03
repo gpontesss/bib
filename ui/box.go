@@ -9,14 +9,19 @@ func max(a, b int) int {
 
 // XY docs here.
 type XY struct {
-	X, Y uint
+	X, Y int
+}
+
+// RelTo docs here.
+func (xy *XY) RelTo(xy2 XY) XY {
+	return XY{xy2.X - xy.X, xy2.Y - xy.Y}
 }
 
 // Move docs here.
 func (xy *XY) Move(x, y int) XY {
 	return XY{
-		X: uint(max(0, int(xy.X)+x)),
-		Y: uint(max(0, int(xy.Y)+y)),
+		X: xy.X + x,
+		Y: xy.Y + y,
 	}
 }
 
@@ -107,7 +112,7 @@ func (box Box) VertDiv(n uint) BoxIter {
 		Value: func() Box {
 			return Box{
 				// uint cast is safe for i is never negative after a `Next` call.
-				XY{box.nw.X + divwidth*uint(i), box.nw.Y},
+				XY{box.nw.X + int(divwidth)*i, box.nw.Y},
 				box.height,
 				divwidth,
 			}
@@ -129,7 +134,7 @@ func (box Box) HorDiv(n uint) BoxIter {
 		Value: func() Box {
 			return Box{
 				// uint cast is safe for i is never negative after a `Next` call.
-				XY{box.nw.X, box.nw.Y + divheight*uint(i)},
+				XY{box.nw.X, box.nw.Y + int(divheight)*i},
 				divheight,
 				box.width,
 			}

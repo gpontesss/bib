@@ -142,13 +142,13 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 	case 'q': // Quits.
 		return true
 	case 'g': // Goes to top of text.
-		curpad.GotoCursor(curpad.miny(), curpad.minx())
+		curpad.GotoCursor(0, uint(curpad.cursor.X))
 	case 'G': // Goes to bottom of text.
-		curpad.GotoCursor(curpad.maxy(), curpad.minx())
+		curpad.GotoCursor(curpad.pad.bufheight, uint(curpad.cursor.X))
 	case '_':
-		curpad.GotoCursor(curpad.cursor.Y, curpad.minx())
+		curpad.GotoCursor(uint(curpad.cursor.Y), 0)
 	case '$':
-		curpad.GotoCursor(curpad.cursor.Y, curpad.maxx())
+		curpad.GotoCursor(uint(curpad.cursor.Y), curpad.pad.bufwidth)
 	case '(':
 		ui.IncrPadding(-1)
 	case ')':
@@ -191,10 +191,10 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 		}
 	case 'L': // Changes pad focus to the one on the right.
 		ui.nextpad()
-		ui.curpad().GotoCursor(ui.curpad().cursor.Y, ui.curpad().cursor.X)
+		ui.curpad().GotoCursor(uint(ui.curpad().cursor.Y), uint(ui.curpad().cursor.X))
 	case 'H': // Changes pad focus to the one on the left.
 		ui.prevpad()
-		ui.curpad().GotoCursor(ui.curpad().cursor.Y, ui.curpad().cursor.X)
+		ui.curpad().GotoCursor(uint(ui.curpad().cursor.Y), uint(ui.curpad().cursor.X))
 	case gc.KEY_TAB:
 		if vsr, err := ui.vsrmenu.Select(); err == nil && vsr != nil {
 			curpad.SetVersion(vsr)
@@ -204,7 +204,7 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 		// always refreshes all for removing menu window "shadow".
 		ui.Refresh(true)
 		// and moves cursor to where it should be, in the active pad.
-		ui.curpad().GotoCursor(ui.curpad().cursor.Y, ui.curpad().cursor.X)
+		ui.curpad().GotoCursor(uint(ui.curpad().cursor.Y), uint(ui.curpad().cursor.X))
 	}
 	return false
 }
