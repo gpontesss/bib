@@ -15,15 +15,16 @@ import (
 type UI struct {
 	Versions []*bib.Version
 	// TODO: can't it be ephemeral?
-	vsrmenu   VersionMenu
+	vsrmenu VersionMenu
+	cmdbox  CmdBox
+	// TODO: migrate to WinBox
 	stdscr    *gc.Window
 	padding   uint
 	box       Box
 	winchchan chan os.Signal
 	keychan   chan gc.Key
-	// by default, first pad is selected. (unitiated)
-	curpadi int
-	pads    []VersionPad
+	curpadi   int // by default, first pad is selected. (unitiated)
+	pads      []VersionPad
 }
 
 // Init docs here.
@@ -54,7 +55,8 @@ func (ui *UI) Init() (err error) {
 
 	ui.pads = make([]VersionPad, len(ui.Versions))
 
-	boxiter := ui.box.VertDiv(uint(len(ui.pads)))
+	// TODO: move this init logic to resize.
+	boxiter := ui.box.HorDiv(uint(len(ui.pads)))
 	for boxiter.Next() {
 		i := boxiter.Index()
 		ui.pads[i], err = NewVersionPad(
@@ -62,6 +64,11 @@ func (ui *UI) Init() (err error) {
 		if err != nil {
 			return err
 		}
+	}
+
+	if ui.cmdbox, err = NewCmdBox(
+		Box{ui.box.SW().Move(0, -1), 1, ui.box.width}); err != nil {
+		return err
 	}
 
 	// TODO: resize it too.
@@ -73,20 +80,12 @@ func (ui *UI) Init() (err error) {
 		return err
 	}
 
-	ui.winchchan = make(chan os.Signal, 1)
-	signal.Notify(ui.winchchan, syscall.SIGWINCH)
-
-	ui.keychan = make(chan gc.Key)
-	go func() {
-		for {
-			ui.keychan <- ui.curpad().GetChar()
-		}
-	}()
-
 	return nil
 }
 
-func (ui *UI) nextpad()            { ui.curpadi = (ui.curpadi + 1) % len(ui.pads) }
+func (ui *UI) nextpad() { ui.curpadi = (ui.curpadi + 1) % len(ui.pads) }
+
+// TODO: fix negative index
 func (ui *UI) prevpad()            { ui.curpadi = (ui.curpadi - 1) % len(ui.pads) }
 func (ui *UI) curpad() *VersionPad { return &ui.pads[ui.curpadi] }
 
@@ -123,10 +122,11 @@ func (ui *UI) Resize(height, width uint) {
 	ui.stdscr.Erase()
 	ui.stdscr.NoutRefresh()
 
-	boxiter := ui.box.VertDiv(uint(len(ui.Versions)))
+	boxiter := ui.box.HorDiv(uint(len(ui.Versions)))
 	for boxiter.Next() {
 		ui.pads[boxiter.Index()].Resize(boxiter.Value(), ui.padding)
 	}
+	ui.cmdbox.ResizeBox(Box{ui.box.SW().Move(0, -1), 1, ui.box.width})
 }
 
 // IncrPadding docs here.
@@ -136,11 +136,15 @@ func (ui *UI) IncrPadding(padding int) {
 }
 
 // HandleKey docs here.
+// TODO: delegate key handling to nested windows to better segregate logic.
 func (ui *UI) HandleKey(key gc.Key) bool {
 	curpad := ui.curpad()
 	switch key {
 	case 'q': // Quits.
 		return true
+	case ':':
+		ui.cmdbox.Exec()
+		ui.Refresh(true)
 	case 'g': // Goes to top of text.
 		curpad.GotoCursor(0, uint(curpad.cursor.X))
 	case 'G': // Goes to bottom of text.
@@ -210,35 +214,43 @@ func (ui *UI) HandleKey(key gc.Key) bool {
 }
 
 // Loop docs here.
-func (ui *UI) Loop() error {
+func (ui *UI) Loop() (err error) {
 	// Initially loads reference.
-	if ref, err := bib.ParseRef("John 1"); err != nil {
+	var ref bib.Ref
+	if ref, err = bib.ParseRef("John 1"); err != nil {
 		return err
-	} else {
-		for i := range ui.pads {
-			(&ui.pads[i]).LoadRef(&ref)
-		}
+	}
+	for i := range ui.pads {
+		(&ui.pads[i]).LoadRef(&ref)
 	}
 
 	// Initializes cursor in right position
-	curpad := ui.curpad()
-	curpad.MoveCursor(int(curpad.miny()), int(curpad.minx()))
+	ui.curpad().MoveCursor(0, 0)
+
+	// handles asynchronously terminal resizing.
+	go func() {
+		// TODO: maybe use some lock to prevents weird screen updates.
+		winchchan := make(chan os.Signal, 1)
+		signal.Notify(winchchan, syscall.SIGWINCH)
+		for {
+			select {
+			case <-winchchan:
+				width, height, err := term.GetSize(0)
+				if err != nil {
+					panic(err)
+				}
+				// safe cast for terminal dimensions cannot be negative
+				ui.Resize(uint(height), uint(width))
+				ui.Refresh(true)
+			}
+		}
+	}()
 
 	for {
 		ui.Refresh(false)
-		select {
-		case <-ui.winchchan:
-			width, height, err := term.GetSize(0)
-			if err != nil {
-				panic(err)
-			}
-			// safe cast for terminal dimensions cannot be negative
-			ui.Resize(uint(height), uint(width))
-		case key := <-ui.keychan:
-			// TODO: better exiting handler.
-			if ui.HandleKey(key) {
-				return nil
-			}
+		// TODO: better exiting handler.
+		if ui.HandleKey(ui.curpad().GetChar()) {
+			return nil
 		}
 	}
 }

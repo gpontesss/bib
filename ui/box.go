@@ -12,13 +12,14 @@ type XY struct {
 	X, Y int
 }
 
+// Eq docs here.
+func (xy XY) Eq(xy2 XY) bool { return xy.X == xy2.X && xy.Y == xy2.Y }
+
 // RelTo docs here.
-func (xy *XY) RelTo(xy2 XY) XY {
-	return XY{xy2.X - xy.X, xy2.Y - xy.Y}
-}
+func (xy *XY) RelTo(xy2 XY) XY { return XY{xy2.X - xy.X, xy2.Y - xy.Y} }
 
 // Move docs here.
-func (xy *XY) Move(x, y int) XY {
+func (xy XY) Move(x, y int) XY {
 	return XY{
 		X: xy.X + x,
 		Y: xy.Y + y,
@@ -65,13 +66,10 @@ func (box *Box) SE() XY { return box.nw.Move(int(box.width), int(box.height)) }
 func (box Box) Pad(pad uint) Box { return box.VertPad(pad, pad).HorPad(pad, pad) }
 
 // Move docs here.
-func (box Box) Move(hor, vert int) Box {
-	return Box{box.nw.Move(hor, vert), box.height, box.width}
-}
+func (box Box) Move(hor, vert int) Box { return Box{box.nw.Move(hor, vert), box.height, box.width} }
 
-func (box Box) Resize(height, width uint) Box {
-	return Box{box.nw, height, width}
-}
+// Resize docs here.
+func (box Box) Resize(height, width uint) Box { return Box{box.nw, height, width} }
 
 // VertPad docs here.
 func (box Box) VertPad(top, bottom uint) Box {

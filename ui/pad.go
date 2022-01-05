@@ -41,6 +41,7 @@ type VersionPad struct {
 	refloaded bib.Ref
 }
 
+// Resize docs here.
 func (vsrp *VersionPad) Resize(box Box, padding uint) {
 	vsrp.display = box.Pad(padding)
 
@@ -53,11 +54,6 @@ func (vsrp *VersionPad) Resize(box Box, padding uint) {
 		vsrp.LoadRef(vsrp.RefLoaded())
 	}
 }
-
-func (vsrp *VersionPad) minx() uint { return 0 }
-func (vsrp *VersionPad) maxx() uint { return vsrp.display.width }
-func (vsrp *VersionPad) miny() uint { return 0 }
-func (vsrp *VersionPad) maxy() uint { return uint(vsrp.maxoffset - 1) }
 
 // SetVersion docs here.
 func (vsrp *VersionPad) SetVersion(vsr *bib.Version) { vsrp.vsr = vsr }
@@ -128,6 +124,7 @@ func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	vsrp.WinBox.Erase()
 	vsrp.WinBox.NoutRefresh()
 
+	// TODO: create header struct to delegate this function
 	vsrp.header.SetBackground(gc.ColorPair(2))
 	vsrp.header.AttrOn(gc.ColorPair(2) | gc.A_BOLD)
 	vsrp.header.MovePrint(0, 0, vsrp.vsr.Name, " ", &vsrp.refloaded) // header
@@ -136,7 +133,7 @@ func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	refp.Print(&vsrp.pad)
 
 	vsrp.offset = 0
-	vsrp.GotoCursor(vsrp.miny(), vsrp.minx())
+	vsrp.GotoCursor(0, 0)
 
 	vsrp.NoutRefresh()
 }
