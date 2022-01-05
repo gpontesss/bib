@@ -13,30 +13,28 @@ import (
 
 // UI docs here.
 type UI struct {
-	Versions []*bib.Version
+	WinBox
 	// TODO: can't it be ephemeral?
-	vsrmenu VersionMenu
-	cmdbox  CmdBox
-	// TODO: migrate to WinBox
-	stdscr    *gc.Window
-	padding   uint
-	box       Box
-	winchchan chan os.Signal
-	keychan   chan gc.Key
-	curpadi   int // by default, first pad is selected. (unitiated)
-	pads      []VersionPad
+	vsrmenu  VersionMenu
+	cmdbox   CmdBox
+	padding  uint
+	curpadi  int // by default, first pad is selected. (unitiated)
+	Versions []*bib.Version
+	pads     []VersionPad
 }
 
 // Init docs here.
 func (ui *UI) Init() (err error) {
-	if ui.stdscr, err = gc.Init(); err != nil {
-		return err
-	}
 	defer func() {
 		if val := recover(); val != nil {
 			err = fmt.Errorf("%v", val)
 		}
 	}()
+
+	stdsrc, err := gc.Init()
+	if err != nil {
+		return err
+	}
 
 	gc.StartColor() // Allows colors.
 	gc.Cursor(1)    // Shows cursor.
@@ -46,8 +44,8 @@ func (ui *UI) Init() (err error) {
 	gc.InitPair(2, gc.C_WHITE, gc.C_BLUE) // Header
 
 	// root UI is anchored at (0,0)
-	maxheight, maxwidth := ui.stdscr.MaxYX()
-	ui.box = Box{XY{0, 0}, uint(maxheight), uint(maxwidth)}
+	maxheight, maxwidth := stdsrc.MaxYX()
+	ui.WinBox = CastWinBox(Box{XY{0, 0}, uint(maxheight), uint(maxwidth)}, stdsrc)
 	ui.padding = 1
 
 	ui.pads = make([]VersionPad, len(ui.Versions))
@@ -64,14 +62,14 @@ func (ui *UI) Init() (err error) {
 
 	// TODO: resize it too.
 	if ui.vsrmenu, err = NewVersionMenu(
-		int(ui.box.height/4), int(ui.box.width/4),
-		int(ui.box.height/2), int(ui.box.width/2),
+		int(ui.height/4), int(ui.width/4),
+		int(ui.height/2), int(ui.width/2),
 		ui.Versions...,
 	); err != nil {
 		return err
 	}
 
-	ui.Resize(ui.box.height, ui.box.width)
+	ui.Resize(ui.height, ui.width)
 
 	return nil
 }
@@ -105,27 +103,26 @@ func (ui *UI) Refresh(all bool) {
 
 // Resize docs here.
 func (ui *UI) Resize(height, width uint) {
-	ui.box = ui.box.Resize(height, width)
-
-	gc.ResizeTerm(int(ui.box.height), int(ui.box.width))
-	ui.stdscr.Resize(int(ui.box.height), int(ui.box.width))
+	// TODO: handle error.
+	_ = gc.ResizeTerm(int(ui.height), int(ui.width))
+	ui.WinBox.Resize(height, width)
 
 	// Gets rid of previously painted columns that were part of pads, but no
 	// longer are.
-	ui.stdscr.Erase()
-	ui.stdscr.NoutRefresh()
+	ui.WinBox.Erase()
+	ui.WinBox.NoutRefresh()
 
-	boxiter := ui.box.VertDiv(uint(len(ui.Versions)))
+	boxiter := ui.VertDiv(uint(len(ui.Versions)))
 	for boxiter.Next() {
 		ui.pads[boxiter.Index()].Resize(boxiter.Value(), ui.padding)
 	}
-	ui.cmdbox.ResizeBox(Box{ui.box.SW().Move(0, -1), 1, ui.box.width})
+	ui.cmdbox.ResizeBox(Box{ui.SW().Move(0, -1), 1, ui.width})
 }
 
 // IncrPadding docs here.
 func (ui *UI) IncrPadding(padding int) {
 	ui.padding = uint(max(0, int(ui.padding)+padding))
-	ui.Resize(ui.box.height, ui.box.width)
+	ui.Resize(ui.height, ui.width)
 }
 
 // HandleKey docs here.

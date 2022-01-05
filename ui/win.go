@@ -2,9 +2,15 @@ package ui
 
 import gc "github.com/gbin/goncurses"
 
+// WinBox docs here.
 type WinBox struct {
 	Box
 	*gc.Window
+}
+
+// CastWinBox docs here.
+func CastWinBox(box Box, win *gc.Window) WinBox {
+	return WinBox{box, win}
 }
 
 // MinBox docs here.
