@@ -46,28 +46,19 @@ func (ui *UI) Init() (err error) {
 	gc.InitPair(2, gc.C_WHITE, gc.C_BLUE) // Header
 
 	// root UI is anchored at (0,0)
-	ui.box = Box{XY{0, 0}, 0, 0}
-
 	maxheight, maxwidth := ui.stdscr.MaxYX()
-	// cast is safe for term size can never be negative.
-	ui.box = ui.box.Resize(uint(maxheight), uint(maxwidth))
+	ui.box = Box{XY{0, 0}, uint(maxheight), uint(maxwidth)}
 	ui.padding = 1
 
 	ui.pads = make([]VersionPad, len(ui.Versions))
-
-	// TODO: move this init logic to resize.
-	boxiter := ui.box.HorDiv(uint(len(ui.pads)))
-	for boxiter.Next() {
-		i := boxiter.Index()
-		ui.pads[i], err = NewVersionPad(
-			ui.Versions[i], boxiter.Value(), ui.padding)
-		if err != nil {
+	for i := range ui.pads {
+		vsr := ui.Versions[i]
+		if ui.pads[i], err = NewVersionPad(vsr, MinBox(), ui.padding); err != nil {
 			return err
 		}
 	}
 
-	if ui.cmdbox, err = NewCmdBox(
-		Box{ui.box.SW().Move(0, -1), 1, ui.box.width}); err != nil {
+	if ui.cmdbox, err = NewCmdBox(MinBox()); err != nil {
 		return err
 	}
 
@@ -80,13 +71,15 @@ func (ui *UI) Init() (err error) {
 		return err
 	}
 
+	ui.Resize(ui.box.height, ui.box.width)
+
 	return nil
 }
 
 func (ui *UI) nextpad() { ui.curpadi = (ui.curpadi + 1) % len(ui.pads) }
-
-// TODO: fix negative index
-func (ui *UI) prevpad()            { ui.curpadi = (ui.curpadi - 1) % len(ui.pads) }
+func (ui *UI) prevpad() {
+	ui.curpadi = ((ui.curpadi-1)%len(ui.pads) + len(ui.pads)) % len(ui.pads)
+}
 func (ui *UI) curpad() *VersionPad { return &ui.pads[ui.curpadi] }
 
 // End docs here.
@@ -102,7 +95,7 @@ func (ui *UI) End() {
 func (ui *UI) Refresh(all bool) {
 	if all {
 		for i := range ui.pads {
-			(&ui.pads[i]).NoutRefresh()
+			ui.pads[i].NoutRefresh()
 		}
 	} else {
 		ui.curpad().NoutRefresh()
@@ -122,7 +115,7 @@ func (ui *UI) Resize(height, width uint) {
 	ui.stdscr.Erase()
 	ui.stdscr.NoutRefresh()
 
-	boxiter := ui.box.HorDiv(uint(len(ui.Versions)))
+	boxiter := ui.box.VertDiv(uint(len(ui.Versions)))
 	for boxiter.Next() {
 		ui.pads[boxiter.Index()].Resize(boxiter.Value(), ui.padding)
 	}

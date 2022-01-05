@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	gc "github.com/gbin/goncurses"
 	"github.com/gpontesss/bib/bib"
 )
@@ -12,15 +14,15 @@ func NewVersionPad(
 	if vsrp.WinBox, err = NewBoxWin(MinBox()); err != nil {
 		return VersionPad{}, err
 	}
-	vsrp.header = vsrp.Sub(Box{})
+	vsrp.header = CastHeader(vsrp.Sub(MinBox()), "")
 
-	if vsrp.pad, err = NewPadBox(Box{}, 1, 1); err != nil {
+	if vsrp.pad, err = NewPadBox(MinBox(), 1, 1); err != nil {
 		return VersionPad{}, err
 	}
 
 	vsrp.vsr = vsr
-
 	vsrp.Resize(box, padding)
+
 	return vsrp, nil
 }
 
@@ -28,7 +30,7 @@ func NewVersionPad(
 type VersionPad struct {
 	WinBox
 
-	header WinBox
+	header Header
 	pad    PadBox
 
 	display Box
@@ -46,7 +48,7 @@ func (vsrp *VersionPad) Resize(box Box, padding uint) {
 	vsrp.display = box.Pad(padding)
 
 	vsrp.ResizeBox(box)
-	vsrp.header.ResizeBox(Box{vsrp.display.NW(), 1, vsrp.display.width})
+	vsrp.header.ResizeBox(Box{vsrp.display.nw, 1, vsrp.display.width})
 	vsrp.pad.Resize(vsrp.display.VertPad(vsrp.header.height, 1))
 
 	// Forces pad refresh, while reloading text with new dimensions.
@@ -84,6 +86,7 @@ func (vsrp *VersionPad) Scroll(offset int) {
 
 // NoutRefresh docs here.
 func (vsrp *VersionPad) NoutRefresh() {
+	vsrp.WinBox.Erase()
 	vsrp.WinBox.NoutRefresh()
 	vsrp.header.NoutRefresh()
 	vsrp.pad.NoutRefresh()
@@ -91,6 +94,7 @@ func (vsrp *VersionPad) NoutRefresh() {
 
 // Refresh docs here.
 func (vsrp *VersionPad) Refresh() {
+	vsrp.WinBox.Erase()
 	vsrp.WinBox.Refresh()
 	vsrp.header.Refresh()
 	vsrp.pad.Refresh()
@@ -116,20 +120,10 @@ func (vsrp *VersionPad) LoadRef(ref *bib.Ref) {
 	refp := NewRefPrinter(&vsrp.refloaded, vsrp.vsr, vsrp.display.width)
 	vsrp.maxoffset = refp.LinesRequired()
 	vsrp.pad.ResizeBuffer(
-		// +height avoids text shadows at end when scrolling near end of text.
-		// vsrp.maxoffset+vsrp.display.height,
 		vsrp.maxoffset,
 		vsrp.display.width)
 
-	vsrp.WinBox.Erase()
-	vsrp.WinBox.NoutRefresh()
-
-	// TODO: create header struct to delegate this function
-	vsrp.header.SetBackground(gc.ColorPair(2))
-	vsrp.header.AttrOn(gc.ColorPair(2) | gc.A_BOLD)
-	vsrp.header.MovePrint(0, 0, vsrp.vsr.Name, " ", &vsrp.refloaded) // header
-	vsrp.header.AttrOff(gc.ColorPair(2) | gc.A_BOLD)
-
+	vsrp.header.SetText(fmt.Sprintf("%s %s", vsrp.vsr.Name, &vsrp.refloaded))
 	refp.Print(&vsrp.pad)
 
 	vsrp.offset = 0

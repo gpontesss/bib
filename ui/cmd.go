@@ -24,6 +24,7 @@ func NewCmdBox(box Box) (CmdBox, error) {
 func (cb *CmdBox) Exec() {
 	cb.cursor = XY{0, 0}
 
+	cb.Erase()
 	cb.MoveAddChar(cb.cursor.Y, cb.cursor.X, ':')
 	cb.cursor = cb.cursor.Move(1, 0)
 	cb.Refresh()
@@ -50,10 +51,10 @@ loop:
 	}
 
 	cb.Erase()
-	cb.Refresh()
 	cb.MovePrint(0, 0, cmd)
 	cb.Refresh()
 	time.Sleep(1 * time.Second)
+
 	cb.Erase()
 	cb.Refresh()
 }

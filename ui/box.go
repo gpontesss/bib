@@ -50,6 +50,14 @@ type Box struct {
 	height, width uint
 }
 
+// CenteredBox docs here.
+func CenteredBox(center XY, height, width uint) Box {
+	return Box{center.Move(int(width/2), int(height/2)), height, width}
+}
+
+// Center docs here.
+func (box Box) Center() XY { return box.nw.Move(int(box.width/2), int(box.height/2)) }
+
 // NW docs here.
 func (box *Box) NW() XY { return box.nw }
 

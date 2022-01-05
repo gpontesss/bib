@@ -30,16 +30,12 @@ func (wb *WinBox) Sub(box Box) WinBox {
 }
 
 // Resize docs here.
-func (wb *WinBox) Resize(height, width uint) {
-	wb.ResizeBox(wb.Box.Resize(height, width))
-}
+func (wb *WinBox) Resize(height, width uint) { wb.ResizeBox(wb.Box.Resize(height, width)) }
 
 // MoveXY docs here.
-func (wb *WinBox) MoveXY(xy XY) {
-	wb.Window.MoveWindow(int(xy.Y), int(xy.X))
-}
+func (wb *WinBox) MoveXY(xy XY) { wb.Window.MoveWindow(int(xy.Y), int(xy.X)) }
 
-// Resize docs here.
+// ResizeBox docs here.
 func (wb *WinBox) ResizeBox(box Box) {
 	if wb.Box.nw != box.nw {
 		wb.MoveXY(box.nw)
