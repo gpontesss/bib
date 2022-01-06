@@ -102,7 +102,11 @@ func (vmenu *VersionMenu) Delete() {
 	vmenu.sub.Delete()
 	vmenu.WinBox.Delete()
 	for _, item := range vmenu.items {
-		item.Free()
+		if item != nil {
+			item.Free()
+		}
 	}
-	vmenu.menu.Free()
+	if vmenu.menu != nil {
+		vmenu.menu.Free()
+	}
 }

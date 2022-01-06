@@ -50,6 +50,14 @@ func (wb *WinBox) ResizeBox(box Box) {
 	wb.Box = box
 }
 
+// Delete docs here.
+func (wb *WinBox) Delete() error {
+	if wb != nil && wb.Window != nil {
+		return wb.Window.Delete()
+	}
+	return nil
+}
+
 // PadBox docs here.
 type PadBox struct {
 	Box
@@ -112,6 +120,7 @@ func (pb *PadBox) BoundBuffer(x, y int) XY {
 	return XY{x, y}
 }
 
+// BoundBufferXY docs here.
 func (pb *PadBox) BoundBufferXY(xy XY) XY { return pb.BoundBuffer(xy.X, xy.Y) }
 
 // MoveCursorXY docs here.
@@ -128,4 +137,12 @@ func (pb *PadBox) MoveCursor(x, y uint) XY {
 	xy := pb.BoundBuffer(int(x), int(y))
 	pb.Pad.Move(int(xy.Y), int(xy.X))
 	return xy
+}
+
+// Delete docs here.
+func (pb *PadBox) Delete() error {
+	if pb != nil && pb.Pad != nil {
+		return pb.Pad.Delete()
+	}
+	return nil
 }

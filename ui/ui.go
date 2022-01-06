@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,7 +13,6 @@ import (
 // UI docs here.
 type UI struct {
 	WinBox
-	// TODO: can't it be ephemeral?
 	vsrmenu  VersionMenu
 	cmdbox   CmdBox
 	padding  uint
@@ -25,24 +23,10 @@ type UI struct {
 
 // Init docs here.
 func (ui *UI) Init() (err error) {
-	defer func() {
-		if val := recover(); val != nil {
-			err = fmt.Errorf("%v", val)
-		}
-	}()
-
 	stdsrc, err := gc.Init()
 	if err != nil {
 		return err
 	}
-
-	gc.StartColor() // Allows colors.
-	gc.Cursor(1)    // Shows cursor.
-	gc.Echo(false)  // Does not echo typing.
-
-	gc.InitPair(1, gc.C_WHITE, 0)         // Verse highlighting
-	gc.InitPair(2, gc.C_WHITE, gc.C_BLUE) // Header
-
 	// root UI is anchored at (0,0)
 	maxheight, maxwidth := stdsrc.MaxYX()
 	ui.WinBox = CastWinBox(Box{XY{0, 0}, uint(maxheight), uint(maxwidth)}, stdsrc)
@@ -52,19 +36,24 @@ func (ui *UI) Init() (err error) {
 	for i := range ui.pads {
 		vsr := ui.Versions[i]
 		if ui.pads[i], err = NewVersionPad(vsr, MinBox(), ui.padding); err != nil {
-			return err
+			return
 		}
 	}
-
 	if ui.cmdbox, err = NewCmdBox(MinBox()); err != nil {
-		return err
+		return
 	}
-
 	if ui.vsrmenu, err = NewVersionMenu(ui.Box, ui.Versions...); err != nil {
-		return err
+		return
 	}
 
 	ui.Resize(ui.height, ui.width)
+
+	gc.StartColor() // Allows colors.
+	gc.Cursor(1)    // Shows cursor.
+	gc.Echo(false)  // Does not echo typing.
+
+	gc.InitPair(1, gc.C_WHITE, 0)         // Verse highlighting
+	gc.InitPair(2, gc.C_WHITE, gc.C_BLUE) // Header
 
 	return nil
 }
@@ -82,7 +71,6 @@ func (ui *UI) End() {
 	for padi := range ui.pads {
 		(&ui.pads[padi]).Delete()
 	}
-	ui.vsrmenu.Delete()
 	ui.cmdbox.Delete()
 	ui.WinBox.Delete()
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -30,15 +31,19 @@ func main() {
 	}
 
 	ui := ui.UI{Versions: vsrs}
-	if err := ui.Init(); err != nil {
-		log.Fatal("ui.Init", err)
-	}
 	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("Panic: %v", err)
-		}
+		err := recover()
+		// forces UI to be ended before logging, to avoid terminal bugging
+		// glitch.
 		ui.End()
+		if err != nil {
+			panic(err)
+		}
 	}()
+
+	if err := ui.Init(); err != nil {
+		panic(fmt.Errorf("ui.Init: %v", err))
+	}
 
 	cancelchan := make(chan os.Signal, 1)
 	signal.Notify(cancelchan, syscall.SIGTERM, syscall.SIGINT)
@@ -46,9 +51,9 @@ func main() {
 	select {
 	case err := <-ui.AsyncLoop():
 		if err != nil {
-			log.Printf("Exited with error: %v", err)
+			panic(fmt.Errorf("Exited with error: %v", err))
 		}
 	case sig := <-cancelchan:
-		log.Printf("Caught signal: %v", sig)
+		panic(fmt.Errorf("Caught exitin signal: %v", sig))
 	}
 }
