@@ -17,6 +17,8 @@ func main() {
 
 	for i, filename := range filenames {
 		file, err := os.Open(filename)
+		defer file.Close()
+
 		if err != nil {
 			log.Fatal("os.Open", err)
 		}
@@ -25,7 +27,6 @@ func main() {
 			log.Fatal("tsv.Decode", err)
 		}
 		vsrs[i] = &version
-		file.Close()
 	}
 
 	ui := ui.UI{Versions: vsrs}

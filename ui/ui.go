@@ -60,12 +60,7 @@ func (ui *UI) Init() (err error) {
 		return err
 	}
 
-	// TODO: resize it too.
-	if ui.vsrmenu, err = NewVersionMenu(
-		int(ui.height/4), int(ui.width/4),
-		int(ui.height/2), int(ui.width/2),
-		ui.Versions...,
-	); err != nil {
+	if ui.vsrmenu, err = NewVersionMenu(ui.Box, ui.Versions...); err != nil {
 		return err
 	}
 
@@ -82,11 +77,14 @@ func (ui *UI) curpad() *VersionPad { return &ui.pads[ui.curpadi] }
 
 // End docs here.
 func (ui *UI) End() {
-	// TODO: include version menu.
+	defer gc.End()
+
 	for padi := range ui.pads {
 		(&ui.pads[padi]).Delete()
 	}
-	gc.End()
+	ui.vsrmenu.Delete()
+	ui.cmdbox.Delete()
+	ui.WinBox.Delete()
 }
 
 // Refresh docs here.
@@ -111,6 +109,8 @@ func (ui *UI) Resize(height, width uint) {
 	// longer are.
 	ui.WinBox.Erase()
 	ui.WinBox.NoutRefresh()
+
+	// ui.vsrmenu.ResizeBox(ui.Box)
 
 	boxiter := ui.VertDiv(uint(len(ui.Versions)))
 	for boxiter.Next() {
@@ -217,22 +217,21 @@ func (ui *UI) Loop() (err error) {
 	// Initializes cursor in right position
 	ui.curpad().MoveCursor(0, 0)
 
+	winchchan := make(chan os.Signal, 1)
+	signal.Notify(winchchan, syscall.SIGWINCH)
+	defer signal.Stop(winchchan)
+
 	// handles asynchronously terminal resizing.
 	go func() {
 		// TODO: maybe use some lock to prevents weird screen updates.
-		winchchan := make(chan os.Signal, 1)
-		signal.Notify(winchchan, syscall.SIGWINCH)
-		for {
-			select {
-			case <-winchchan:
-				width, height, err := term.GetSize(0)
-				if err != nil {
-					panic(err)
-				}
-				// safe cast for terminal dimensions cannot be negative
-				ui.Resize(uint(height), uint(width))
-				ui.Refresh(true)
+		for range winchchan {
+			width, height, err := term.GetSize(0)
+			if err != nil {
+				panic(err)
 			}
+			// safe cast for terminal dimensions cannot be negative
+			ui.Resize(uint(height), uint(width))
+			ui.Refresh(true)
 		}
 	}()
 

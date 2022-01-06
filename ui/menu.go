@@ -5,49 +5,50 @@ import (
 	"github.com/gpontesss/bib/bib"
 )
 
+// VersionMenu docs here.
+type VersionMenu struct {
+	WinBox
+	sub   WinBox
+	vsrs  []*bib.Version
+	menu  *gc.Menu
+	items []*gc.MenuItem
+}
+
 // NewVersionMenu docs here.
-func NewVersionMenu(y, x, h, w int, vsrs ...*bib.Version) (VersionMenu, error) {
-	var err error
-	items := make([]*gc.MenuItem, len(vsrs))
-	for i := range items {
-		items[i], err = gc.NewItem(vsrs[i].Name, "")
-		if err != nil {
-			return VersionMenu{}, err
+func NewVersionMenu(box Box, vsrs ...*bib.Version) (vmenu VersionMenu, err error) {
+	vmenu.vsrs = vsrs
+	vmenu.items = make([]*gc.MenuItem, len(vmenu.vsrs))
+	for i := range vmenu.vsrs {
+		if vmenu.items[i], err = gc.NewItem(vmenu.vsrs[i].Name, ""); err != nil {
+			return
 		}
 	}
-
-	vmenu := VersionMenu{
-		vsrs:  vsrs,
-		width: w, height: h,
+	if vmenu.WinBox, err = NewBoxWin(MinBox()); err != nil {
+		return
 	}
-	vmenu.menu, err = gc.NewMenu(items)
-	if err != nil {
-		return VersionMenu{}, err
+	if vmenu.menu, err = gc.NewMenu(vmenu.items); err != nil {
+		return
 	}
-
-	menuwin, err := gc.NewWindow(h, w, y, x)
-	if err != nil {
-		return VersionMenu{}, err
+	if err = vmenu.menu.SetWindow(vmenu.WinBox.Window); err != nil {
+		return
 	}
-	if err = vmenu.menu.SetWindow(menuwin); err != nil {
-		return VersionMenu{}, nil
-	}
-
-	// -1 to consider the border; -3 to consider the top header
-	derwin := menuwin.Derived(h-1-3, w-1, 3, 1)
-	vmenu.menu.SubWindow(derwin)
 
 	vmenu.menu.Mark(" * ")
 	vmenu.menu.SetBackground(0)
 
+	vmenu.sub = vmenu.WinBox.Sub(MinBox())
+	vmenu.menu.SubWindow(vmenu.sub.Window)
+
+	vmenu.Resize(box)
+
 	return vmenu, nil
 }
 
-// VersionMenu docs here.
-type VersionMenu struct {
-	menu          *gc.Menu
-	vsrs          []*bib.Version
-	width, height int
+// Resize docs here.
+func (vmenu *VersionMenu) Resize(box Box) {
+	vmenu.WinBox.ResizeBox(box)
+	// -1 to consider the border; -3 to consider the top header
+	vmenu.sub.ResizeBox(vmenu.HorPad(1, 1).VertPad(3, 1).MoveXY(XY{1, 3}))
 }
 
 // Select docs here.
@@ -81,13 +82,14 @@ func (vmenu *VersionMenu) Select() (*bib.Version, error) {
 
 // Draw docs here.
 func (vmenu *VersionMenu) Draw() {
-	menuwin := vmenu.menu.Window()
-	menuwin.Box(0, 0)
+	win := vmenu.Window
+	win.Box(0, 0)
 
 	// Menu header, considering the border offset.
-	menuwin.MovePrint(1, 1, "Select the version")
-	menuwin.HLine(2, 1, 0, vmenu.width-2)
-	menuwin.NoutRefresh()
+	// TODO: migrate to Header.
+	win.MovePrint(1, 1, "Select the version")
+	win.HLine(2, 1, 0, int(vmenu.width)-2)
+	win.NoutRefresh()
 }
 
 // Current docs here.
@@ -97,9 +99,10 @@ func (vmenu *VersionMenu) Current() *bib.Version {
 
 // Delete docs here.
 func (vmenu *VersionMenu) Delete() {
-	for _, item := range vmenu.menu.Items() {
+	vmenu.sub.Delete()
+	vmenu.WinBox.Delete()
+	for _, item := range vmenu.items {
 		item.Free()
 	}
-	vmenu.menu.Window().Delete()
 	vmenu.menu.Free()
 }

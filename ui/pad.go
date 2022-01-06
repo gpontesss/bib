@@ -105,8 +105,9 @@ func (vsrp *VersionPad) GetChar() gc.Key { return vsrp.pad.GetChar() }
 
 // Delete docs here.
 func (vsrp *VersionPad) Delete() {
-	// TODO: include other components too.
+	vsrp.header.Delete()
 	vsrp.pad.Delete()
+	vsrp.WinBox.Delete()
 }
 
 // RefLoaded docs here.

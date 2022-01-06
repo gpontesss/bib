@@ -12,6 +12,9 @@ type XY struct {
 	X, Y int
 }
 
+// Neg docs here.
+func (xy XY) Neg() XY { return XY{-xy.X, -xy.Y} }
+
 // Eq docs here.
 func (xy XY) Eq(xy2 XY) bool { return xy.X == xy2.X && xy.Y == xy2.Y }
 
@@ -75,6 +78,12 @@ func (box Box) Pad(pad uint) Box { return box.VertPad(pad, pad).HorPad(pad, pad)
 
 // Move docs here.
 func (box Box) Move(hor, vert int) Box { return Box{box.nw.Move(hor, vert), box.height, box.width} }
+
+// MoveXY docs here.
+func (box Box) MoveXY(nw XY) Box {
+	box.nw = nw
+	return box
+}
 
 // Resize docs here.
 func (box Box) Resize(height, width uint) Box { return Box{box.nw, height, width} }
