@@ -12,7 +12,7 @@ all available translations.
 To debug the application, invoke the debugger console in one shell:
 
 ```shell
-dlv debug --headless --listen :4747 main.go
+dlv debug --headless --listen :4747 main.go --version=/path/to/version.tsv
 ```
 
 And execute the application in another:

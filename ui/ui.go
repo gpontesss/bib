@@ -238,3 +238,15 @@ func (ui *UI) AsyncLoop() <-chan error {
 	go func() { loopend <- ui.Loop() }()
 	return loopend
 }
+
+// Close should be deferred before initiating the UI, so that in all cases it is
+// ended before any error logging or such, to avoid terminal glitches.
+func (ui *UI) Close() {
+	err := recover()
+	// forces UI to be ended before logging, to avoid terminal bugging
+	// glitch.
+	ui.End()
+	if err != nil {
+		panic(err)
+	}
+}
