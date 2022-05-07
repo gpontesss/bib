@@ -59,7 +59,7 @@ func ParseRef(str string) (Ref, error) {
 	if len(result) != 1 {
 		return Ref{}, fmt.Errorf("%q is an invalid reference\n", str)
 	}
-	// since it matches the edges (^...$), it ever only produces one result
+	// since it matches the entire string (^...$), it ever only produces one result
 	// match set.
 	matches := result[0]
 
