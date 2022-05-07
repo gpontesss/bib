@@ -17,17 +17,11 @@ func main() {
 	vsrs := make([]*bib.Version, len(filenames))
 
 	for i, filename := range filenames {
-		file, err := os.Open(filename)
-		defer file.Close()
-
-		if err != nil {
-			log.Fatal("os.Open", err)
+		if vsr, err := LoadVersion(filename); err != nil {
+			log.Fatal(err)
+		} else {
+			vsrs[i] = &vsr
 		}
-		version, err := tsv.Decode(file, filename)
-		if err != nil {
-			log.Fatal("tsv.Decode", err)
-		}
-		vsrs[i] = &version
 	}
 
 	ui := ui.UI{Versions: vsrs}
@@ -56,4 +50,19 @@ func main() {
 	case sig := <-cancelchan:
 		panic(fmt.Errorf("Caught exitin signal: %v", sig))
 	}
+}
+
+// LoadVersion docs here.
+func LoadVersion(filename string) (bib.Version, error) {
+	file, err := os.Open(filename)
+	defer file.Close()
+
+	if err != nil {
+		return bib.Version{}, fmt.Errorf("os.Open: %s", err)
+	}
+	version, err := tsv.Decode(file, filename)
+	if err != nil {
+		return bib.Version{}, fmt.Errorf("tsv.Decode: %s", err)
+	}
+	return version, nil
 }
