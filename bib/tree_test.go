@@ -44,8 +44,8 @@ func TestNode(t *testing.T) {
 	AssertSearch(t, tree, []rune("hell"), "world")
 	AssertSearchNil(t, tree, []rune("h"))
 
-	word := "goodbye"
+	word, expect := "goodbye", "ma'am"
 	for i := 1; i <= len(word); i++ {
-		AssertSearch(t, tree, []rune("goodbye")[:i], "ma'am")
+		AssertSearch(t, tree, []rune(word)[:i], expect)
 	}
 }

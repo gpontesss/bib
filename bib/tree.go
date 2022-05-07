@@ -5,7 +5,7 @@ func NewTree[K comparable, V any]() *Branch[K, V] {
 	return &Branch[K, V]{subbranches: []*Branch[K, V]{}}
 }
 
-// Branch gathes a matching key, an optional value (ending branches should
+// Branch gathers a matching key, an optional value (ending branches should
 // always have a value; root branch should never have a value) and its
 // subbranches.
 type Branch[K comparable, V any] struct {
