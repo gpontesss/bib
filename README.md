@@ -7,6 +7,20 @@ all available translations.
 
 ## Development
 
+### Debugging
+
+To debug the application, invoke the debugger console in one shell:
+
+```shell
+dlv debug --headless --listen :4747 main.go
+```
+
+And execute the application in another:
+
+```shell
+dlv connect :4747
+```
+
 ### Troubleshooting
 
 MacOS seems to have a problem related with pkg-config .pc files related with
